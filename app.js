@@ -22,6 +22,12 @@ const livingroom = new TuyAPI({
     ip: '10.0.0.7'
 });
 
+let livingroomManager;
+
+livingroom.find()
+    .then(() => livingroom.connect())
+    .then(() => {livingroomManager = new Manager(livingroom)});
+
 const bedroom = new TuyAPI({
     id: 'eb9520010f9186a397re4p',
     key: '6d30218d9928a979',
@@ -29,8 +35,8 @@ const bedroom = new TuyAPI({
     ip: '10.0.0.174'
 })
 
-const livingroomManager = new Manager(livingroom);
-const bedroomManager = new Manager(bedroom);
+
+// const bedroomManager = new Manager(bedroom);
 
 const app = express();
 
@@ -79,26 +85,44 @@ dps: {
  */
 
 /* GET home page. */
+/*
 app.get('/', function(req, res, next) {
     res.render('index', { title: 'Express' });
 });
 
-/* GET users listing. */
+/* GET users listing. * /
 app.get('/', function(req, res, next) {
     res.send('respond with a resource');
 });
+*/
 
 app.get('/color', async (req, res) => {
     const [h, s, v] = await livingroomManager.getBetterHSV();
     res.json({h, s, v});
 });
 
-app.put('/color', async (req, res) => {
+app.put('/color', (req, res) => {
     const { h, s, v } = req.body.color;
-    await livingroomManager.setBetterHSV(h, s, v);
-    const [newH, newS, newV] = await livingroomManager.getBetterHSV();
-    console.log(`h: ${newH}, s: ${newS}, v: ${newV}`);
+    livingroomManager.setBetterHSV(h, s, v)
+        .then(() => livingroomManager.getBetterHSV())
+        .then((data) => console.log(data))
+        .then(res.json({completed: true}));
 });
+
+app.post('/color', (req, res) => {
+    const livingroom = new TuyAPI({
+        id: 'eb5bcfaa30722046765rxa',
+        key: '3c236d1941e65bde',
+        version: 3.3,
+        ip: '10.0.0.7'
+    });
+    const livingroomManager = new Manager(livingroom);
+    const h = parseInt(req.query.h);
+    const s = parseInt(req.query.s);
+    const v = parseInt(req.query.v);
+    livingroomManager.setBetterHSV(h, s, v)
+        .then(() => res.json({ completed: true }));
+})
 
 app.listen(PORT, () => {
     console.log(`Server listening on port ${PORT}`);

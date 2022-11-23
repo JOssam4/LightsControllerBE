@@ -88,7 +88,7 @@ export default class Manager {
   }
 
   setHSV(hsv: string): Promise<Object> {
-    return this.bulbDevice.set({dps: 24, set: hsv});
+    return this.bulbDevice.set({dps: 24, set: hsv, shouldWaitForResponse: false});
   }
 
   getState(): Promise<string> {
@@ -139,9 +139,9 @@ export default class Manager {
   setBetterHSV(h: number, s: number, v: number): Promise<Object> {
     s *= 10;
     v *= 10;
-    const hexH = h.toString(16).padStart(4, '0');
-    const hexS = s.toString(16).padStart(4, '0');
-    const hexV = v.toString(16).padStart(4, '0');
+    const hexH = Math.round(h).toString(16).padStart(4, '0');
+    const hexS = Math.round(s).toString(16).padStart(4, '0');
+    const hexV = Math.round(v).toString(16).padStart(4, '0');
     const hsvVal = hexH + hexS + hexV;
     if (this.bulbDevice.isConnected()) {
       return this.setHSV(hsvVal);
