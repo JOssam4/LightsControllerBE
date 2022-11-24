@@ -19,7 +19,8 @@ const livingroom = new TuyAPI({
     id: 'eb5bcfaa30722046765rxa',
     key: '3c236d1941e65bde',
     version: 3.3,
-    ip: '10.0.0.7'
+    ip: '10.0.0.7',
+    issueRefreshOnPing: true,
 });
 
 let livingroomManager;
@@ -44,7 +45,7 @@ app.use(logger('dev'));
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 app.use(cookieParser());
-app.use(express.static(path.join(__dirname, 'public')));
+app.use(express.static(path.resolve(__dirname, './build/')));
 app.use(cors(corsOptions));
 app.use(bodyparser.json());
 app.use(bodyparser.urlencoded({ extended: true }));
@@ -97,30 +98,30 @@ app.get('/', function(req, res, next) {
 */
 
 app.get('/color', async (req, res) => {
-    const [h, s, v] = await livingroomManager.getBetterHSV();
+    const device = parseInt(req.query.device);
+    const managedDevice = (device === 0) ? new Manager(bedroom) : new Manager(livingroom);
+    const [h, s, v] = await managedDevice.getBetterHSV();
+    console.log(`current color: ${[h, s, v]}`);
     res.json({h, s, v});
 });
 
 app.put('/color', (req, res) => {
     const { h, s, v } = req.body.color;
-    livingroomManager.setBetterHSV(h, s, v)
+    const device = parseInt(req.query.device);
+    const managedDevice = (device === 0) ? new Manager(bedroom) : new Manager(livingroom);
+    managedDevice.setBetterHSV(h, s, v)
         .then(() => livingroomManager.getBetterHSV())
         .then((data) => console.log(data))
         .then(res.json({completed: true}));
 });
 
 app.post('/color', (req, res) => {
-    const livingroom = new TuyAPI({
-        id: 'eb5bcfaa30722046765rxa',
-        key: '3c236d1941e65bde',
-        version: 3.3,
-        ip: '10.0.0.7'
-    });
-    const livingroomManager = new Manager(livingroom);
+    const device = req.query.device;
+    const managedDevice = (device === 0) ? new Manager(bedroom) : new Manager(livingroom);
     const h = parseInt(req.query.h);
     const s = parseInt(req.query.s);
     const v = parseInt(req.query.v);
-    livingroomManager.setBetterHSV(h, s, v)
+    managedDevice.setBetterHSV(h, s, v)
         .then(() => res.json({ completed: true }));
 })
 

@@ -23,8 +23,11 @@ type setOptions = {
   dps: number;
   set: any;
   cid?: string;
-  multiple?: boolean;
-  data?: Object;
+  shouldWaitForResponse?: boolean;
+} | {
+  multiple: boolean;
+  data: Object;
+  cid?: string;
   shouldWaitForResponse?: boolean;
 }
 
@@ -42,4 +45,5 @@ type State = {
   whiteLightBrightness: number;
 }
 
-export type{ getOptions, refreshOptions, setOptions, findOptions, Mode, State };
+export type { getOptions, refreshOptions, setOptions, findOptions, State };
+export { Mode };

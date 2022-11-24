@@ -87,8 +87,20 @@ export default class Manager {
     return this.bulbDevice.get({dps: 24});
   }
 
-  setHSV(hsv: string): Promise<Object> {
-    return this.bulbDevice.set({dps: 24, set: hsv, shouldWaitForResponse: false});
+  async setHSV(hsv: string): Promise<Object> {
+    const mode = await this.getMode();
+    if (mode !== Mode.COLOR) {
+      return this.bulbDevice.set({
+        multiple: true,
+        data: {
+          '21': Mode.COLOR,
+          '24': hsv,
+        },
+        shouldWaitForResponse: false
+      });
+    } else {
+      return this.bulbDevice.set({dps: 24, set: hsv});
+    }
   }
 
   getState(): Promise<string> {
@@ -136,7 +148,7 @@ export default class Manager {
     return [h, s / 10, v / 10];
   }
 
-  setBetterHSV(h: number, s: number, v: number): Promise<Object> {
+  async setBetterHSV(h: number, s: number, v: number): Promise<Object> {
     s *= 10;
     v *= 10;
     const hexH = Math.round(h).toString(16).padStart(4, '0');
@@ -146,9 +158,11 @@ export default class Manager {
     if (this.bulbDevice.isConnected()) {
       return this.setHSV(hsvVal);
     } else {
-      return this.bulbDevice.find()
+      const ret = await this.bulbDevice.find()
         .then(() => this.bulbDevice.connect())
         .then(() => this.setHSV(hsvVal));
+      this.bulbDevice.disconnect()
+      return ret;
     }
   }
 
