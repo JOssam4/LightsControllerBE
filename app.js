@@ -58,13 +58,13 @@ app.use(bodyparser.urlencoded({ extended: true }));
 app.get('/state', async (req, res) => {
     const device = parseInt(req.query.device);
     const managedDevice = (device === 0) ? new Manager(bedroom) : new Manager(livingroom);
-    const toggleStatus = await managedDevice.getToggleStatus();
+    const toggle = await managedDevice.getToggleStatus();
     const [h, s, v] = await managedDevice.getBetterHSV();
     const brightness = await managedDevice.getBrightnessPercentage();
-    console.log(`current toggle status: ${toggleStatus}`);
+    console.log(`current toggle: ${toggle}`);
     console.log(`current color: ${[h, s, v]}`);
     console.log(`current brightness: ${brightness}`);
-    res.json({color: {h, s, v}, brightness, toggleStatus});
+    res.json({color: {h, s, v}, brightness, toggle});
 });
 
 app.get('/color', async (req, res) => {
@@ -112,7 +112,7 @@ app.get('/toggle', async (req, res) => {
     const toggle = await managedDevice.getToggleStatus();
     console.log(`current toggle status: ${toggle}`);
     res.json({toggle});
-})
+});
 
 app.put('/toggle', (req, res) => {
     const device = parseInt(req.query.device);
@@ -121,6 +121,10 @@ app.put('/toggle', (req, res) => {
     managedDevice.setToggleStatus(toggle)
         .then(() => res.json({completed: true}))
         .catch(() => res.json({completed: false}));
+});
+
+app.get('*', (req, res) => {
+    res.sendFile(path.resolve(__dirname, './build', 'index.html'));
 });
 
 app.listen(PORT, () => {
