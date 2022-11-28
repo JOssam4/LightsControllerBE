@@ -55,6 +55,18 @@ app.use(cors(corsOptions));
 app.use(bodyparser.json());
 app.use(bodyparser.urlencoded({ extended: true }));
 
+app.get('/state', async (req, res) => {
+    const device = parseInt(req.query.device);
+    const managedDevice = (device === 0) ? new Manager(bedroom) : new Manager(livingroom);
+    const toggleStatus = await managedDevice.getToggleStatus();
+    const [h, s, v] = await managedDevice.getBetterHSV();
+    const brightness = await managedDevice.getBrightnessPercentage();
+    console.log(`current toggle status: ${toggleStatus}`);
+    console.log(`current color: ${[h, s, v]}`);
+    console.log(`current brightness: ${brightness}`);
+    res.json({color: {h, s, v}, brightness, toggleStatus});
+});
+
 app.get('/color', async (req, res) => {
     const device = parseInt(req.query.device);
     const managedDevice = (device === 0) ? new Manager(bedroom) : new Manager(livingroom);
@@ -68,6 +80,45 @@ app.put('/color', limiter,(req, res) => {
     const device = parseInt(req.query.device);
     const managedDevice = (device === 0) ? new Manager(bedroom) : new Manager(livingroom);
     managedDevice.setBetterHSV(h, s, v)
+        .then(() => res.json({completed: true}))
+        .catch(() => res.json({completed: false}));
+});
+
+app.get('/brightness', async (req, res) => {
+    const device = parseInt(req.query.device);
+    const managedDevice = (device === 0) ? new Manager(bedroom) : new Manager(livingroom);
+    const brightness = await managedDevice.getBrightnessPercentage();
+    console.log(`current brightness: ${brightness}%`);
+    res.json({brightness});
+});
+
+app.put('/brightness', limiter, (req, res) => {
+    const device = parseInt(req.query.device);
+    let brightness = parseInt(req.body.brightness);
+    if (brightness < 0) {
+        brightness = 0;
+    } else if (brightness > 100) {
+        brightness = 100;
+    }
+    const managedDevice = (device === 0) ? new Manager(bedroom) : new Manager(livingroom);
+    managedDevice.setBrightnessPercentage(brightness)
+        .then(() => res.json({completed: true}))
+        .catch(() => res.json({completed: false}));
+});
+
+app.get('/toggle', async (req, res) => {
+    const device = parseInt(req.query.device);
+    const managedDevice = (device === 0) ? new Manager(bedroom) : new Manager(livingroom);
+    const toggle = await managedDevice.getToggleStatus();
+    console.log(`current toggle status: ${toggle}`);
+    res.json({toggle});
+})
+
+app.put('/toggle', (req, res) => {
+    const device = parseInt(req.query.device);
+    const toggle = req.body.toggle;
+    const managedDevice = (device === 0) ? new Manager(bedroom) : new Manager(livingroom);
+    managedDevice.setToggleStatus(toggle)
         .then(() => res.json({completed: true}))
         .catch(() => res.json({completed: false}));
 });

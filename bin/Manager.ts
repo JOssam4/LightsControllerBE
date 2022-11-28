@@ -123,12 +123,12 @@ export default class Manager {
 
   // toggle and mode are ok how they are.
 
-  getBrightnessPercentage(): Promise<number> {
+  getWhiteBrightnessPercentage(): Promise<number> {
     return this.getBrightness()
       .then((brightness: number) => brightness / 10)
   }
 
-  setBrightnessPercentage(percentage: number) {
+  setWhiteBrightnessPercentage(percentage: number) {
     const brightnessRAW = percentage * 10;
     return this.setBrightness(brightnessRAW);
   }
@@ -165,6 +165,33 @@ export default class Manager {
       return ret;
     }
   }
+
+  async getBrightnessPercentage(): Promise<number> {
+    const mode = await this.getMode();
+    if (mode === Mode.WHITE) {
+      return this.getWhiteBrightnessPercentage();
+    } else if (mode === Mode.COLOR) {
+      const [h, s, v] = await this.getBetterHSV();
+      return v;
+    } else {
+      console.log('unsupported mode. Supported modes are WHITE and COLOR.');
+      return -1;
+    }
+  }
+
+  async setBrightnessPercentage(brightness: number): Promise<Object> {
+     const mode = await this.getMode();
+     if (mode === Mode.WHITE) {
+       return this.setWhiteBrightnessPercentage(brightness);
+     } else if (mode === Mode.COLOR) {
+       const [h, s, v] = await this.getBetterHSV();
+       return this.setBetterHSV(h, s, brightness)
+     } else {
+       console.log('unsupported mode. Supported modes are WHITE and COLOR');
+       return {}
+     }
+  }
+
 
   async getBetterState(): Promise<State> {
     const stateVal: string = await this.getState();
