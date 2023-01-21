@@ -7,7 +7,7 @@ const cors = require('cors');
 const rateLimit = require('express-rate-limit');
 
 const limiter = rateLimit({
-    windowMs: 500, // 0.5 seconds
+    windowMs: 400, // 0.4 seconds
     max: 1,
     standardHeaders: false,
     legacyHeaders: false
@@ -60,11 +60,13 @@ app.get('/state', async (req, res) => {
     const managedDevice = (device === 0) ? new Manager(bedroom) : new Manager(livingroom);
     const toggle = await managedDevice.getToggleStatus();
     const [h, s, v] = await managedDevice.getBetterHSV();
-    const brightness = await managedDevice.getBrightnessPercentage();
+    const brightness = await managedDevice.getWhiteBrightnessPercentage();
+    const mode = await managedDevice.getMode();
     console.log(`current toggle: ${toggle}`);
     console.log(`current color: ${[h, s, v]}`);
     console.log(`current brightness: ${brightness}`);
-    res.json({color: {h, s, v}, brightness, toggle});
+    console.log(`current mode: ${mode}`);
+    res.json({color: {h, s, v}, brightness, toggle, mode});
 });
 
 app.get('/color', async (req, res) => {
@@ -75,7 +77,17 @@ app.get('/color', async (req, res) => {
     res.json({h, s, v});
 });
 
-app.put('/color', limiter,(req, res) => {
+app.put('/color', limiter, (req, res) => {
+    const { h, s, v } = req.body.color;
+    const device = parseInt(req.query.device);
+    const managedDevice = (device === 0) ? new Manager(bedroom) : new Manager(livingroom);
+    managedDevice.setBetterHSV(h, s, v)
+        .then(() => res.json({completed: true}))
+        .catch(() => res.json({completed: false}));
+});
+
+// Used as a rate limit override for final decision.
+app.post('/color', (req, res) => {
     const { h, s, v } = req.body.color;
     const device = parseInt(req.query.device);
     const managedDevice = (device === 0) ? new Manager(bedroom) : new Manager(livingroom);
@@ -106,6 +118,20 @@ app.put('/brightness', limiter, (req, res) => {
         .catch(() => res.json({completed: false}));
 });
 
+app.post('/brightness', (req, res) => {
+    const device = parseInt(req.query.device);
+    let brightness = parseInt(req.body.brightness);
+    if (brightness < 0) {
+        brightness = 0;
+    } else if (brightness > 100) {
+        brightness = 100;
+    }
+    const managedDevice = (device === 0) ? new Manager(bedroom) : new Manager(livingroom);
+    managedDevice.setBrightnessPercentage(brightness)
+        .then(() => res.json({completed: true}))
+        .catch(() => res.json({completed: false}));
+});
+
 app.get('/toggle', async (req, res) => {
     const device = parseInt(req.query.device);
     const managedDevice = (device === 0) ? new Manager(bedroom) : new Manager(livingroom);
@@ -123,10 +149,35 @@ app.put('/toggle', (req, res) => {
         .catch(() => res.json({completed: false}));
 });
 
+app.get('/mode', async (req, res) => {
+    const device = parseInt(req.query.device);
+    const managedDevice = (device === 0) ? new Manager(bedroom) : new Manager(livingroom);
+    const mode = await managedDevice.getMode();
+    console.log(`current mode: ${mode}`);
+    res.json({mode});
+});
+
+// Since brightness slider should be for all modes, send back current brightness
+app.put('/mode', async (req, res) => {
+    const device = parseInt(req.query.device);
+    const mode = req.body.mode;
+    const managedDevice = (device === 0) ? new Manager(bedroom) : new Manager(livingroom);
+    managedDevice.setMode(mode)
+        .then(() => {
+            managedDevice.getBrightnessPercentage()
+            .then((brightness) => {
+                console.log(`brightness: ${brightness}`);
+                res.json({completed: true, brightness});
+            })
+        })
+        .catch(() => res.json({completed: false}));
+});
+
+/*
 app.get('*', (req, res) => {
     res.sendFile(path.resolve(__dirname, './build', 'index.html'));
 });
-
+*/
 app.listen(PORT, () => {
     console.log(`Server listening on port ${PORT}`);
 });
