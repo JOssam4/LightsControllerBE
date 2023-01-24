@@ -18,8 +18,8 @@ dps: {
 
     '25': '000e0d0000000000000000c80000', <-- Situation. Type: Character. Value: Value: 0011223344445555666677778888
     00: Scene number
-    11: Unit switching interval time (0-100)
-    22: Unit change time (0-100)
+    11: Unit switching interval time (0-100) -- Transition interval between lighting modes. The higher the value here, the longer it takes to transition to another color
+    22: Unit change time (0-100) -- Lighting mode duration. The higher the value here, the longer the lights will stay this color before beginning the next transition.
     33: Unit change mode (0 static, 1 jump, 2 gradual change)
     4444: H (chromaticity: 0-360, 0X0000-0X0168)
     5555: S (saturated: 0-1000, 0X0000-0X03E8)
@@ -27,6 +27,26 @@ dps: {
     7777: White light brightness (0-1000)
     8888: Color temperature value (0-1000)
     Note: The numbers 1-8 correspond to as many groups as there are units
+
+    You can string together a bunch of values for 25 to get a fade loop or something like that.
+    Ex: 010b0a02000003e803e8000000000b0a02007603e803e8000000000b0a0200e703e803e800000000
+    Note: scene number is not repeated for each group. It only appears once, at the beginning
+    
+    Dissected example:
+    01 0b0a02000003e803e800000000 0b0a02007603e803e800000000 0b0a0200e703e803e800000000
+    01 - scene number
+    0b - Unit switching interval time (11) -- I think this refers to how long the lights take to switch between colors
+    0a - Unit change time (10) -- I think this refers to how long the lights stay on a color for before switching.
+    02: Unit change mode: gradual change
+    0000: H
+    03e8: S
+    03e8: V
+    0000: White light brightness (yes, you can have both hsv and white)
+    0000: color temperature (doesn't appear to do anything since datapoint 23 is not supported)
+    
+    Example 2: The fade button on the controller causes the following scene:
+    0b440002000003e803e800000000440002001d03e803e800000000440002004603e803e800000000440002008403e803e80000000044000200b703e803e80000000044000200ef03e803e800000000440002013103e803e800000000
+    = 0b 440002000003e803e800000000 440002001d03e803e800000000 440002004603e803e800000000 440002008403e803e800000000 44000200b703e803e800000000 44000200ef03e803e800000000 440002013103e803e800000000
 
     '26': 0 <-- Countdown. Type: Numeric. Value: 0-86400. The data unit is second,
     which corresponds to a value of 60 for one minute, and the maximum setting is 86400 = 23 hours and 59 minutes.
