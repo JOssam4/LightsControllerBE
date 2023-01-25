@@ -61,7 +61,7 @@ function parseFullSceneIntoParts(fullScene: string): SceneParts {
 
 function compressScene(scene: Scene): string {
     let ret = '';
-    scene.s *= 10;
+    scene.s = Math.min(scene.s * 10, 1000);
     scene.v *= 10;
     ret += scene.unitSwitchIntervalTime.toString(16).padStart(2, '0');
     ret += scene.unitChangeTime.toString(16).padStart(2, '0');

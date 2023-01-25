@@ -194,23 +194,34 @@ export default class Manager {
     } else if (mode === Mode.COLOR) {
       const [h, s, v] = await this.getBetterHSV();
       return v;
-    } else {
-      console.log('unsupported mode. Supported modes are WHITE and COLOR.');
+    } else if (mode === Mode.SCENE) {
+      // Assumes all colors in scene have same brightness
+      const sceneparts = await this.getCurrentScene();
+      return sceneparts.parts[0].v / 10;
+    }  else {
+      console.log('unsupported mode. Supported modes are WHITE, COLOR, and SCENE');
       return -1;
     }
   }
 
   async setBrightnessPercentage(brightness: number): Promise<Object> {
-     const mode = await this.getMode();
-     if (mode === Mode.WHITE) {
-       return this.setWhiteBrightnessPercentage(brightness);
-     } else if (mode === Mode.COLOR) {
-       const [h, s, v] = await this.getBetterHSV();
-       return this.setBetterHSV(h, s, brightness)
-     } else {
-       console.log('unsupported mode. Supported modes are WHITE and COLOR');
-       return {}
-     }
+    const mode = await this.getMode();
+    if (mode === Mode.WHITE) {
+      return this.setWhiteBrightnessPercentage(brightness);
+    } else if (mode === Mode.COLOR) {
+      const [h, s, v] = await this.getBetterHSV();
+      return this.setBetterHSV(h, s, brightness)
+    } else if (mode === Mode.SCENE) {
+      // Assumes all colors in scene have same brightness
+      const sceneparts = await this.getCurrentScene();
+      for (const part of sceneparts.parts) {
+        part.v = brightness;
+      }
+      return this.setCurrentScene(sceneparts);
+    } else {
+      console.log('unsupported mode. Supported modes are WHITE, COLOR, and SCENE');
+      return {}
+    }
   }
 
   async getCurrentScene(): Promise<SceneParts> {

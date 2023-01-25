@@ -62,11 +62,13 @@ app.get('/state', async (req, res) => {
     const [h, s, v] = await managedDevice.getBetterHSV();
     const brightness = await managedDevice.getWhiteBrightnessPercentage();
     const mode = await managedDevice.getMode();
+    const sceneBrightness = await managedDevice.getBrightnessPercentage();
     console.log(`current toggle: ${toggle}`);
     console.log(`current color: ${[h, s, v]}`);
     console.log(`current brightness: ${brightness}`);
     console.log(`current mode: ${mode}`);
-    res.json({color: {h, s, v}, brightness, toggle, mode});
+    console.log(`scene brightness: ${sceneBrightness}`);
+    res.json({color: {h, s, v}, brightness, toggle, mode, sceneBrightness});
 });
 
 app.get('/color', async (req, res) => {
