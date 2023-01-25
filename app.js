@@ -173,6 +173,25 @@ app.put('/mode', async (req, res) => {
         .catch(() => res.json({completed: false}));
 });
 
+app.get('/scene', async (req, res) => {
+    const device = parseInt(req.query.device);
+    const managedDevice = (device === 0) ? new Manager(bedroom) : new Manager(livingroom);
+    const sceneparts = await managedDevice.getCurrentScene();
+    console.log('current scene:');
+    console.dir(sceneparts);
+    res.json(sceneparts);
+});
+
+app.put('/scene', async (req, res) => {
+    const device = parseInt(req.query.device);
+    const scene = req.body;
+    const managedDevice = (device === 0) ? new Manager(bedroom) : new Manager(livingroom);
+    managedDevice.setCurrentScene(scene)
+        .then(() => {
+            res.json({completed: true});
+        });
+});
+
 /*
 app.get('*', (req, res) => {
     res.sendFile(path.resolve(__dirname, './build', 'index.html'));

@@ -1,4 +1,5 @@
-import { getOptions, refreshOptions, setOptions, findOptions, Mode, State} from "./Types";
+import { getOptions, refreshOptions, setOptions, findOptions, Mode} from "./Types";
+import {ChangeMode, Scene, SceneParts, parseScene, parseFullSceneIntoParts, compressScene, compressSceneParts, getBetterCompressedScene} from './Scenes';
 
 /*
 https://developer.tuya.com/en/docs/iot/product-function-definition?id=K9tp155s4th6b
@@ -123,12 +124,12 @@ export default class Manager {
     }
   }
 
-  getState(): Promise<string> {
+  getScene(): Promise<string> {
     return this.bulbDevice.get({dps: 25});
   }
 
-  setState(state: string): Promise<Object> {
-    return this.bulbDevice.set({dps: 25, set: state});
+  setScene(scene: string): Promise<Object> {
+    return this.bulbDevice.set({dps: 25, set: scene});
   }
 
   getCountdown(): Promise<number> {
@@ -212,27 +213,16 @@ export default class Manager {
      }
   }
 
-
-  async getBetterState(): Promise<State> {
-    const stateVal: string = await this.getState();
-    const scene = parseInt(stateVal.substring(0, 2), 10);
-    const switchingInterval = parseInt(stateVal.substring(2, 4), 10);
-    const changeTime = parseInt(stateVal.substring(4, 6), 10);
-    const changeMode = parseInt(stateVal.substring(6, 8), 10);
-    // const H = parseInt(stateVal.substring(8, 12), 16);
-    // const S = parseInt(stateVal.substring(12, 16), 16);
-    // const V = parseInt(stateVal.substring(16, 20), 16);
-    const whiteLightBrightness = parseInt(stateVal.substring(20, 24), 10);
-    // const colorTemperatureValue = parseInt(stateVal.substring(24), 10);
-
-    return {
-      scene,
-      switchingInterval: switchingInterval,
-      changeTime,
-      changeMode,
-      whiteLightBrightness,
-    }
+  async getCurrentScene(): Promise<SceneParts> {
+    const compressedScene = await this.getScene();
+    return parseFullSceneIntoParts(compressedScene);
   }
+
+  async setCurrentScene(sceneparts: SceneParts): Promise<Object> {
+    const compressedScene = compressSceneParts(sceneparts);
+    return this.setScene(compressedScene);
+  }
+  
 
   private getRgbs(c: number, x: number, h: number): [number, number, number] {
     if (h >= 0 && h < 60) {

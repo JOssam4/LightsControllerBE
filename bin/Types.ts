@@ -37,13 +37,5 @@ type findOptions = {
 }
 
 
-type State = {
-  scene: number;
-  switchingInterval: number;
-  changeTime: number;
-  changeMode: ChangeMode;
-  whiteLightBrightness: number;
-}
-
-export type { getOptions, refreshOptions, setOptions, findOptions, State };
+export type { getOptions, refreshOptions, setOptions, findOptions };
 export { Mode };

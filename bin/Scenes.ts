@@ -61,6 +61,8 @@ function parseFullSceneIntoParts(fullScene: string): SceneParts {
 
 function compressScene(scene: Scene): string {
     let ret = '';
+    scene.s *= 10;
+    scene.v *= 10;
     ret += scene.unitSwitchIntervalTime.toString(16).padStart(2, '0');
     ret += scene.unitChangeTime.toString(16).padStart(2, '0');
     ret += scene.unitChangeMode.toString(16).padStart(2, '0');
@@ -70,6 +72,15 @@ function compressScene(scene: Scene): string {
     ret += scene.whiteLightBrightness.toString().padStart(4, '0');
     ret += scene.colorTemperature.toString().padStart(4, '0');
     return ret;
+}
+
+function compressSceneParts(sceneparts: SceneParts): string {
+    let ret = '00'; // scene id = 0, but I don't think it matters
+    for (const part of sceneparts.parts) {
+        ret += compressScene(part);
+    }
+    return ret;
+
 }
 
 // accepts h in [0, 360], s in [0, 100] and v in [0, 100]
@@ -88,4 +99,4 @@ function getBetterCompressedScene(unitSwitchIntervalTime: number, unitChangeTime
 }
 
 
-export {ChangeMode, Scene, SceneParts, parseScene, parseFullSceneIntoParts, compressScene, getBetterCompressedScene};
+export {ChangeMode, Scene, SceneParts, parseScene, parseFullSceneIntoParts, compressScene, compressSceneParts, getBetterCompressedScene};
