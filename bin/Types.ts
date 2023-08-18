@@ -1,9 +1,17 @@
-enum Mode {
+const enum TuyaMode {
   WHITE = 'white',
   COLOR = 'colour',
   SCENE = 'scene',
   MUSIC = 'music',
 }
+
+const enum HueMode {
+  HS = 'hs',
+  XY = 'xy',
+  CT = 'ct'
+}
+
+type Mode = TuyaMode | HueMode;
 
 enum ChangeMode {
   STATIC,
@@ -37,5 +45,5 @@ type findOptions = {
 }
 
 
-export type { getOptions, refreshOptions, setOptions, findOptions };
-export { Mode };
+export type { getOptions, refreshOptions, setOptions, findOptions, Mode };
+export { TuyaMode, HueMode };

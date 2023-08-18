@@ -20,14 +20,30 @@ const corsOptions = {
 
 const TuyAPI = require('tuyapi');
 const Manager = require('./bin/Manager').default;
+const TuyaManager = require('./bin/TuyaManager').default;
+const HueManager = require('./bin/HueManager').default;
+
+const {
+    getState, 
+    getColor, 
+    putColor, 
+    getBrightness, 
+    putBrightness,
+    getToggle, 
+    putToggle, 
+    getMode, 
+    putMode,
+    getScene,
+    putScene
+} = require('./bin/LightController');
 
 const PORT = 3001;
 
 const livingroom = new TuyAPI({
     id: 'eb5bcfaa30722046765rxa',
-    key: '3c236d1941e65bde',
+    key: '~AL+EpT$Sv%lu@*0',
     version: 3.3,
-    ip: '10.0.0.7',
+    ip: '10.0.0.119',
     issueRefreshOnPing: true,
 });
 
@@ -57,148 +73,103 @@ app.use(bodyparser.urlencoded({ extended: true }));
 
 app.get('/state', async (req, res) => {
     const device = parseInt(req.query.device);
-    const managedDevice = (device === 0) ? new Manager(bedroom) : new Manager(livingroom);
-    const toggle = await managedDevice.getToggleStatus();
-    const [h, s, v] = await managedDevice.getBetterHSV();
-    const brightness = await managedDevice.getWhiteBrightnessPercentage();
-    const mode = await managedDevice.getMode();
-    const sceneBrightness = await managedDevice.getBrightnessPercentage();
-    console.log(`current toggle: ${toggle}`);
-    console.log(`current color: ${[h, s, v]}`);
-    console.log(`current brightness: ${brightness}`);
-    console.log(`current mode: ${mode}`);
-    console.log(`scene brightness: ${sceneBrightness}`);
-    res.json({color: {h, s, v}, brightness, toggle, mode, sceneBrightness});
+    const managedDevice = (device === 0) ? new HueManager('http://10.0.0.157', 'cfuYwV8QRkwH8a1Jw5OqE4Jo6lZpQG2bBRrM-Mrt', 1) : new TuyaManager(livingroom);
+    const state = await getState(managedDevice);
+    res.json(state);
 });
 
 app.get('/color', async (req, res) => {
     const device = parseInt(req.query.device);
-    const managedDevice = (device === 0) ? new Manager(bedroom) : new Manager(livingroom);
-    const [h, s, v] = await managedDevice.getBetterHSV();
-    console.log(`current color: ${[h, s, v]}`);
-    res.json({h, s, v});
+    const managedDevice = (device === 0) ? new HueManager('http://10.0.0.157', 'cfuYwV8QRkwH8a1Jw5OqE4Jo6lZpQG2bBRrM-Mrt', 1) : new TuyaManager(livingroom);
+    const color = await getColor(managedDevice);
+    return res.json(color);
 });
 
-app.put('/color', limiter, (req, res) => {
-    const { h, s, v } = req.body.color;
+app.put('/color', limiter, async (req, res) => {
     const device = parseInt(req.query.device);
-    const managedDevice = (device === 0) ? new Manager(bedroom) : new Manager(livingroom);
-    managedDevice.setBetterHSV(h, s, v)
-        .then(() => res.json({completed: true}))
-        .catch(() => res.json({completed: false}));
+    const managedDevice = (device === 0) ? new HueManager('http://10.0.0.157', 'cfuYwV8QRkwH8a1Jw5OqE4Jo6lZpQG2bBRrM-Mrt', 1) : new TuyaManager(livingroom);
+    const result = await putColor(managedDevice, req.body.color);
+    res.json(result);
 });
 
-// Used as a rate limit override for final decision.
-app.post('/color', (req, res) => {
-    const { h, s, v } = req.body.color;
+app.post('/color', async (req, res) => {
     const device = parseInt(req.query.device);
-    const managedDevice = (device === 0) ? new Manager(bedroom) : new Manager(livingroom);
-    managedDevice.setBetterHSV(h, s, v)
-        .then(() => res.json({completed: true}))
-        .catch(() => res.json({completed: false}));
+    const managedDevice = (device === 0) ? new HueManager('http://10.0.0.157', 'cfuYwV8QRkwH8a1Jw5OqE4Jo6lZpQG2bBRrM-Mrt', 1) : new TuyaManager(livingroom);
+    const result = await putColor(managedDevice, req.body.color);
+    res.json(result);
 });
 
 app.get('/brightness', async (req, res) => {
     const device = parseInt(req.query.device);
-    const managedDevice = (device === 0) ? new Manager(bedroom) : new Manager(livingroom);
-    const brightness = await managedDevice.getBrightnessPercentage();
-    console.log(`current brightness: ${brightness}%`);
-    res.json({brightness});
+    const managedDevice = (device === 0) ? new HueManager('http://10.0.0.157', 'cfuYwV8QRkwH8a1Jw5OqE4Jo6lZpQG2bBRrM-Mrt', 1) : new TuyaManager(livingroom);
+    const result = await getBrightness(managedDevice);
+    res.json(result);
 });
 
-app.put('/brightness', limiter, (req, res) => {
+app.put('/brightness', limiter, async (req, res) => {
     const device = parseInt(req.query.device);
-    let brightness = parseInt(req.body.brightness);
-    if (brightness < 0) {
-        brightness = 0;
-    } else if (brightness > 100) {
-        brightness = 100;
-    }
-    const managedDevice = (device === 0) ? new Manager(bedroom) : new Manager(livingroom);
-    managedDevice.setBrightnessPercentage(brightness)
-        .then(() => res.json({completed: true}))
-        .catch(() => res.json({completed: false}));
+    const managedDevice = (device === 0) ? new HueManager('http://10.0.0.157', 'cfuYwV8QRkwH8a1Jw5OqE4Jo6lZpQG2bBRrM-Mrt', 1) : new TuyaManager(livingroom);
+    const result = await putBrightness(managedDevice, req.body.brightness);
+    res.json(result);
 });
 
-app.post('/brightness', (req, res) => {
+app.post('/brightness', async (req, res) => {
     const device = parseInt(req.query.device);
-    let brightness = parseInt(req.body.brightness);
-    if (brightness < 0) {
-        brightness = 0;
-    } else if (brightness > 100) {
-        brightness = 100;
-    }
-    const managedDevice = (device === 0) ? new Manager(bedroom) : new Manager(livingroom);
-    managedDevice.setBrightnessPercentage(brightness)
-        .then(() => res.json({completed: true}))
-        .catch(() => res.json({completed: false}));
+    const managedDevice = (device === 0) ? new HueManager('http://10.0.0.157', 'cfuYwV8QRkwH8a1Jw5OqE4Jo6lZpQG2bBRrM-Mrt', 1) : new TuyaManager(livingroom);
+    const result = await putBrightness(managedDevice, req.body.brightness);
+    res.json(result);
 });
 
 app.get('/toggle', async (req, res) => {
     const device = parseInt(req.query.device);
-    const managedDevice = (device === 0) ? new Manager(bedroom) : new Manager(livingroom);
-    const toggle = await managedDevice.getToggleStatus();
-    console.log(`current toggle status: ${toggle}`);
-    res.json({toggle});
+    const managedDevice = (device === 0) ? new HueManager('http://10.0.0.157', 'cfuYwV8QRkwH8a1Jw5OqE4Jo6lZpQG2bBRrM-Mrt', 1) : new TuyaManager(livingroom);
+    const result = await getToggle(managedDevice);
+    res.json(result);
 });
 
-app.put('/toggle', (req, res) => {
+app.put('/toggle', async (req, res) => {
     const device = parseInt(req.query.device);
-    const toggle = req.body.toggle;
-    const managedDevice = (device === 0) ? new Manager(bedroom) : new Manager(livingroom);
-    managedDevice.setToggleStatus(toggle)
-        .then(() => res.json({completed: true}))
-        .catch(() => res.json({completed: false}));
+    const managedDevice = (device === 0) ? new HueManager('http://10.0.0.157', 'cfuYwV8QRkwH8a1Jw5OqE4Jo6lZpQG2bBRrM-Mrt', 1) : new TuyaManager(livingroom);
+    const result = await putToggle(managedDevice, req.body.toggle);
+    res.json(result);
 });
 
 app.get('/mode', async (req, res) => {
     const device = parseInt(req.query.device);
-    const managedDevice = (device === 0) ? new Manager(bedroom) : new Manager(livingroom);
-    const mode = await managedDevice.getMode();
-    console.log(`current mode: ${mode}`);
-    res.json({mode});
+    const managedDevice = (device === 0) ? new HueManager('http://10.0.0.157', 'cfuYwV8QRkwH8a1Jw5OqE4Jo6lZpQG2bBRrM-Mrt', 1) : new TuyaManager(livingroom);
+    const result = await getMode(managedDevice);
+    res.json(result);
 });
 
-// Since brightness slider should be for all modes, send back current brightness
 app.put('/mode', async (req, res) => {
     const device = parseInt(req.query.device);
-    const mode = req.body.mode;
-    const managedDevice = (device === 0) ? new Manager(bedroom) : new Manager(livingroom);
-    managedDevice.setMode(mode)
-        .then(() => {
-            managedDevice.getBrightnessPercentage()
-            .then((brightness) => {
-                console.log(`brightness: ${brightness}`);
-                res.json({completed: true, brightness});
-            })
-        })
-        .catch(() => res.json({completed: false}));
+    const managedDevice = (device === 0) ? new HueManager('http://10.0.0.157', 'cfuYwV8QRkwH8a1Jw5OqE4Jo6lZpQG2bBRrM-Mrt', 1) : new TuyaManager(livingroom);
+    const result = await putMode(managedDevice, req.body.mode);
+    res.json(result);
 });
 
 app.get('/scene', async (req, res) => {
     const device = parseInt(req.query.device);
-    const managedDevice = (device === 0) ? new Manager(bedroom) : new Manager(livingroom);
-    const sceneparts = await managedDevice.getCurrentScene();
-    console.log('current scene:');
-    console.dir(sceneparts);
-    res.json(sceneparts);
+    const managedDevice = (device === 0) ? new HueManager('http://10.0.0.157', 'cfuYwV8QRkwH8a1Jw5OqE4Jo6lZpQG2bBRrM-Mrt', 1) : new TuyaManager(livingroom);
+    const result = await getScene(managedDevice);
+    if (result === null) {
+        res.status(400).json({message: 'Scene not currently supported on Hue device'});
+    } else {
+        res.json(result);
+    }
 });
 
 app.put('/scene', async (req, res) => {
     const device = parseInt(req.query.device);
-    const scene = req.body;
-    const managedDevice = (device === 0) ? new Manager(bedroom) : new Manager(livingroom);
-    managedDevice.setCurrentScene(scene)
-        .then(() => {
-            res.json({completed: true});
-        });
+    const managedDevice = (device === 0) ? new HueManager('http://10.0.0.157', 'cfuYwV8QRkwH8a1Jw5OqE4Jo6lZpQG2bBRrM-Mrt', 1) : new TuyaManager(livingroom);
+    const result = await putScene(managedDevice, req.body);
+    if (result === null) {
+        res.status(400).json({message: 'Scene not currently supported on Hue device'});
+    } else {
+        res.json(result);
+    }
 });
 
-/*
-app.get('*', (req, res) => {
-    res.sendFile(path.resolve(__dirname, './build', 'index.html'));
-});
-*/
 app.listen(PORT, () => {
     console.log(`Server listening on port ${PORT}`);
 });
