@@ -5,9 +5,17 @@ const cookieParser = require('cookie-parser');
 const logger = require('morgan');
 const cors = require('cors');
 const rateLimit = require('express-rate-limit');
+const fs = require('fs');
 
 const limiter = rateLimit({
     windowMs: 400, // 0.4 seconds
+    max: 1,
+    standardHeaders: false,
+    legacyHeaders: false
+});
+
+const getDevicesLimiter = rateLimit({
+    windowMs: 60 * 1000, // 1 minute
     max: 1,
     standardHeaders: false,
     legacyHeaders: false
@@ -23,19 +31,7 @@ const Manager = require('./bin/Manager').default;
 const TuyaManager = require('./bin/TuyaManager').default;
 const HueManager = require('./bin/HueManager').default;
 
-const {
-    getState, 
-    getColor, 
-    putColor, 
-    getBrightness, 
-    putBrightness,
-    getToggle, 
-    putToggle, 
-    getMode, 
-    putMode,
-    getScene,
-    putScene
-} = require('./bin/LightController');
+const LightController = require('./bin/LightController').default;
 
 const PORT = 3001;
 
@@ -71,102 +67,228 @@ app.use(cors(corsOptions));
 app.use(bodyparser.json());
 app.use(bodyparser.urlencoded({ extended: true }));
 
+let controller;
+
+const hueSecrets = JSON.parse(fs.readFileSync('./bin/hue_keys.json').toString());
+LightController.create(hueSecrets.baseUrl, hueSecrets.username)
+    .then((lightController) => {controller = lightController});
+
+app.get('/devices', getDevicesLimiter, async (req, res) => {
+    if (!controller) {
+        const retryAfter = '30'
+        res.set('Retry-After', retryAfter);
+        res.status(503).send(`Light controller not up yet. Please wait ${retryAfter} seconds.`);
+        return;
+    }
+    const devices = await controller.getDevices();
+    res.json(devices);
+})
+
 app.get('/state', async (req, res) => {
-    const device = parseInt(req.query.device);
-    const managedDevice = (device === 0) ? new HueManager('http://10.0.0.157', 'cfuYwV8QRkwH8a1Jw5OqE4Jo6lZpQG2bBRrM-Mrt', 1) : new TuyaManager(livingroom);
-    const state = await getState(managedDevice);
-    res.json(state);
+    if (!controller) {
+        const retryAfter = '30'
+        res.set('Retry-After', retryAfter);
+        res.status(503).send(`Light controller not up yet. Please wait ${retryAfter} seconds.`);
+        return;
+    }
+    const device = req.query.device;
+    const result = await controller.getState(device);
+    if (result.responseCode === 200) {
+        res.json(result.data);
+    } else {
+        res.status(result.responseCode).send(result.message);
+    }
 });
 
 app.get('/color', async (req, res) => {
-    const device = parseInt(req.query.device);
-    const managedDevice = (device === 0) ? new HueManager('http://10.0.0.157', 'cfuYwV8QRkwH8a1Jw5OqE4Jo6lZpQG2bBRrM-Mrt', 1) : new TuyaManager(livingroom);
-    const color = await getColor(managedDevice);
-    return res.json(color);
+    if (!controller) {
+        const retryAfter = '30'
+        res.set('Retry-After', retryAfter);
+        res.status(503).send(`Light controller not up yet. Please wait ${retryAfter} seconds.`);
+        return;
+    }
+    const device = req.query.device;
+    const result = await controller.getColor(device);
+    if (result.responseCode === 200) {
+        res.json(result.data);
+    } else {
+        res.status(result.responseCode).send(result.message);
+    }
 });
 
 app.put('/color', limiter, async (req, res) => {
-    const device = parseInt(req.query.device);
-    const managedDevice = (device === 0) ? new HueManager('http://10.0.0.157', 'cfuYwV8QRkwH8a1Jw5OqE4Jo6lZpQG2bBRrM-Mrt', 1) : new TuyaManager(livingroom);
-    const result = await putColor(managedDevice, req.body.color);
-    res.json(result);
+    if (!controller) {
+        const retryAfter = '30'
+        res.set('Retry-After', retryAfter);
+        res.status(503).send(`Light controller not up yet. Please wait ${retryAfter} seconds.`);
+        return;
+    }
+    const device = req.query.device;
+    const result = await controller.putColor(device, req.body.color);
+    if (result.responseCode === 200) {
+        res.json(result.data);
+    } else {
+        res.status(result.responseCode).send(result.message);
+    }
 });
 
 app.post('/color', async (req, res) => {
-    const device = parseInt(req.query.device);
-    const managedDevice = (device === 0) ? new HueManager('http://10.0.0.157', 'cfuYwV8QRkwH8a1Jw5OqE4Jo6lZpQG2bBRrM-Mrt', 1) : new TuyaManager(livingroom);
-    const result = await putColor(managedDevice, req.body.color);
-    res.json(result);
+    if (!controller) {
+        const retryAfter = '30'
+        res.set('Retry-After', retryAfter);
+        res.status(503).send(`Light controller not up yet. Please wait ${retryAfter} seconds.`);
+        return;
+    }
+    const device = req.query.device;
+    const result = await controller.putColor(device, req.body.color);
+    if (result.responseCode === 200) {
+        res.json(result.data);
+    } else {
+        res.status(result.responseCode).send(result.message);
+    }
 });
 
 app.get('/brightness', async (req, res) => {
-    const device = parseInt(req.query.device);
-    const managedDevice = (device === 0) ? new HueManager('http://10.0.0.157', 'cfuYwV8QRkwH8a1Jw5OqE4Jo6lZpQG2bBRrM-Mrt', 1) : new TuyaManager(livingroom);
-    const result = await getBrightness(managedDevice);
-    res.json(result);
+    if (!controller) {
+        const retryAfter = '30'
+        res.set('Retry-After', retryAfter);
+        res.status(503).send(`Light controller not up yet. Please wait ${retryAfter} seconds.`);
+        return;
+    }
+    const device = req.query.device;
+    const result = await controller.getBrightness(device);
+    if (result.responseCode === 200) {
+        res.json(result.data);
+    } else {
+        res.status(result.responseCode).send(result.message);
+    }
 });
 
 app.put('/brightness', limiter, async (req, res) => {
-    const device = parseInt(req.query.device);
-    const managedDevice = (device === 0) ? new HueManager('http://10.0.0.157', 'cfuYwV8QRkwH8a1Jw5OqE4Jo6lZpQG2bBRrM-Mrt', 1) : new TuyaManager(livingroom);
-    const result = await putBrightness(managedDevice, req.body.brightness);
-    res.json(result);
+    if (!controller) {
+        const retryAfter = '30'
+        res.set('Retry-After', retryAfter);
+        res.status(503).send(`Light controller not up yet. Please wait ${retryAfter} seconds.`);
+        return;
+    }
+    const device = req.query.device;
+    const result = await controller.putBrightness(device, req.body.brightness);
+    if (result.responseCode === 200) {
+        res.json(result.data);
+    } else {
+        res.status(result.responseCode).send(result.message);
+    }
 });
 
 app.post('/brightness', async (req, res) => {
-    const device = parseInt(req.query.device);
-    const managedDevice = (device === 0) ? new HueManager('http://10.0.0.157', 'cfuYwV8QRkwH8a1Jw5OqE4Jo6lZpQG2bBRrM-Mrt', 1) : new TuyaManager(livingroom);
-    const result = await putBrightness(managedDevice, req.body.brightness);
-    res.json(result);
+    if (!controller) {
+        const retryAfter = '30'
+        res.set('Retry-After', retryAfter);
+        res.status(503).send(`Light controller not up yet. Please wait ${retryAfter} seconds.`);
+        return;
+    }
+    const device = req.query.device;
+    const result = await controller.putBrightness(device, req.body.brightness);
+    if (result.responseCode === 200) {
+        res.json(result.data);
+    } else {
+        res.status(result.responseCode).send(result.message);
+    }
 });
 
 app.get('/toggle', async (req, res) => {
-    const device = parseInt(req.query.device);
-    const managedDevice = (device === 0) ? new HueManager('http://10.0.0.157', 'cfuYwV8QRkwH8a1Jw5OqE4Jo6lZpQG2bBRrM-Mrt', 1) : new TuyaManager(livingroom);
-    const result = await getToggle(managedDevice);
-    res.json(result);
+    if (!controller) {
+        const retryAfter = '30'
+        res.set('Retry-After', retryAfter);
+        res.status(503).send(`Light controller not up yet. Please wait ${retryAfter} seconds.`);
+        return;
+    }
+    const device = req.query.device;
+    const result = await controller.getToggle(device);
+    if (result.responseCode === 200) {
+        res.json(result.data);
+    } else {
+        res.status(result.responseCode).send(result.message);
+    }
 });
 
 app.put('/toggle', async (req, res) => {
-    const device = parseInt(req.query.device);
-    const managedDevice = (device === 0) ? new HueManager('http://10.0.0.157', 'cfuYwV8QRkwH8a1Jw5OqE4Jo6lZpQG2bBRrM-Mrt', 1) : new TuyaManager(livingroom);
-    const result = await putToggle(managedDevice, req.body.toggle);
-    res.json(result);
+    if (!controller) {
+        const retryAfter = '30'
+        res.set('Retry-After', retryAfter);
+        res.status(503).send(`Light controller not up yet. Please wait ${retryAfter} seconds.`);
+        return;
+    }
+    const device = req.query.device;
+    const result = await controller.putToggle(device, req.body.toggle);
+    if (result.responseCode === 200) {
+        res.json(result.data);
+    } else {
+        res.status(result.responseCode).send(result.message);
+    }
 });
 
 app.get('/mode', async (req, res) => {
-    const device = parseInt(req.query.device);
-    const managedDevice = (device === 0) ? new HueManager('http://10.0.0.157', 'cfuYwV8QRkwH8a1Jw5OqE4Jo6lZpQG2bBRrM-Mrt', 1) : new TuyaManager(livingroom);
-    const result = await getMode(managedDevice);
-    res.json(result);
+    if (!controller) {
+        const retryAfter = '30'
+        res.set('Retry-After', retryAfter);
+        res.status(503).send(`Light controller not up yet. Please wait ${retryAfter} seconds.`);
+        return;
+    }
+    const device = req.query.device;
+    const result = await controller.getMode(device);
+    if (result.responseCode === 200) {
+        res.json(result.data);
+    } else {
+        res.status(result.responseCode).send(result.message);
+    }
 });
 
 app.put('/mode', async (req, res) => {
-    const device = parseInt(req.query.device);
-    const managedDevice = (device === 0) ? new HueManager('http://10.0.0.157', 'cfuYwV8QRkwH8a1Jw5OqE4Jo6lZpQG2bBRrM-Mrt', 1) : new TuyaManager(livingroom);
-    const result = await putMode(managedDevice, req.body.mode);
-    res.json(result);
+    if (!controller) {
+        const retryAfter = '30'
+        res.set('Retry-After', retryAfter);
+        res.status(503).send(`Light controller not up yet. Please wait ${retryAfter} seconds.`);
+        return;
+    }
+    const device = req.query.device;
+    const result = await controller.putMode(device, req.body.mode);
+    if (result.responseCode === 200) {
+        res.json(result.data);
+    } else {
+        res.status(result.responseCode).send(result.message);
+    }
 });
 
 app.get('/scene', async (req, res) => {
-    const device = parseInt(req.query.device);
-    const managedDevice = (device === 0) ? new HueManager('http://10.0.0.157', 'cfuYwV8QRkwH8a1Jw5OqE4Jo6lZpQG2bBRrM-Mrt', 1) : new TuyaManager(livingroom);
-    const result = await getScene(managedDevice);
-    if (result === null) {
-        res.status(400).json({message: 'Scene not currently supported on Hue device'});
+    if (!controller) {
+        const retryAfter = '30'
+        res.set('Retry-After', retryAfter);
+        res.status(503).send(`Light controller not up yet. Please wait ${retryAfter} seconds.`);
+        return;
+    }
+    const device = req.query.device;
+    const result = await controller.getScene(device);
+    if (result.responseCode === 200) {
+        res.json(result.data);
     } else {
-        res.json(result);
+        res.status(result.responseCode).send(result.message);
     }
 });
 
 app.put('/scene', async (req, res) => {
-    const device = parseInt(req.query.device);
-    const managedDevice = (device === 0) ? new HueManager('http://10.0.0.157', 'cfuYwV8QRkwH8a1Jw5OqE4Jo6lZpQG2bBRrM-Mrt', 1) : new TuyaManager(livingroom);
-    const result = await putScene(managedDevice, req.body);
-    if (result === null) {
-        res.status(400).json({message: 'Scene not currently supported on Hue device'});
+    if (!controller) {
+        const retryAfter = '30'
+        res.set('Retry-After', retryAfter);
+        res.status(503).send(`Light controller not up yet. Please wait ${retryAfter} seconds.`);
+        return;
+    }
+    const device = req.query.device;
+    const result = await controller.putScene(device, req.body);
+    if (result.responseCode === 200) {
+        res.json(result.data);
     } else {
-        res.json(result);
+        res.status(result.responseCode).send(result.message);
     }
 });
 

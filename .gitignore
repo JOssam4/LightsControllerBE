@@ -1,3 +1,5 @@
 node_modules
 build
 .idea
+bin/tuya_keys.json
+bin/hue_keys.json

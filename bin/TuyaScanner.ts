@@ -46,7 +46,7 @@ export default class TuyaScanner extends Scanner {
     this.server.on('listening', () => {
       this.connectionIsOpen = true;
       const address = this.server.address();
-      console.log(`server listening ${address.address}:${address.port}`);
+      console.log(`server listening ${address.address}:${address.port} for ${TuyaScanner.SCANTIME_SECONDS} seconds`);
       setTimeout(() => {
         if (this.connectionIsOpen) {
           this.server.close();

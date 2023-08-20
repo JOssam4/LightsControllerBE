@@ -19,7 +19,7 @@ interface HueLightDeviceState {
     sat: number; // Saturation, in range 0 - 254
     effect: EffectState;
     xy: [number, number]; // Color as an array of xy-coordinates
-    ct: number; // White color temperature, in range 154 (cold) - 500 (warm)
+    ct: number; // White color temperature, in range 153 (cold) - 500 (warm)
     alert: AlertState; // 'select' flashes light once, 'lselect' flashes repeatedly for 10 seconds
     colormode: HueMode;
     transitiontime: number; // Time for transition in centiseconds
@@ -134,7 +134,7 @@ export default class HueManager extends Manager {
         if (mode === HueMode.CT) {
             return this.setWhiteBrightnessPercentage(brightness);
         }
-        const payload = {bri: brightness * 254 / 100};
+        const payload = {bri: Math.round(brightness * 254 / 100)};
         return this.setDeviceStatus(payload);
     }
 
@@ -169,11 +169,11 @@ export default class HueManager extends Manager {
 
     async getWhiteBrightnessPercentage(): Promise<number> {
         return this.getWhiteColorTemperature()
-            .then((whiteColorTemperature: number) => Math.round(((whiteColorTemperature - 154) / 346) * 100));
+            .then((whiteColorTemperature: number) => Math.round(((whiteColorTemperature - 153) / 346) * 100));
     }
 
     setWhiteBrightnessPercentage(percentage: number): Promise<SetStatusResponse[]> {
-        const rawTemp = Math.round(percentage * 346 / 100 + 154);
+        const rawTemp = Math.round(percentage * 346 / 100 + 153);
         return this.setWhiteColorTemperature(rawTemp);
     }
 
