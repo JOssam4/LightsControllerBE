@@ -14,13 +14,6 @@ const limiter = rateLimit({
     legacyHeaders: false
 });
 
-const getDevicesLimiter = rateLimit({
-    windowMs: 60 * 1000, // 1 minute
-    max: 1,
-    standardHeaders: false,
-    legacyHeaders: false
-})
-
 const corsOptions = {
     origin: 'http://localhost:3000',
     optionsSuccessStatus: 200, // for legacy browser support
@@ -73,14 +66,15 @@ const hueSecrets = JSON.parse(fs.readFileSync('./bin/hue_keys.json').toString())
 LightController.create(hueSecrets.baseUrl, hueSecrets.username)
     .then((lightController) => {controller = lightController});
 
-app.get('/devices', getDevicesLimiter, async (req, res) => {
+app.get('/devices', async (req, res) => {
     if (!controller) {
         const retryAfter = '30'
         res.set('Retry-After', retryAfter);
         res.status(503).send(`Light controller not up yet. Please wait ${retryAfter} seconds.`);
         return;
     }
-    const devices = await controller.getDevices();
+    const reScan = req.query.hasOwnProperty('reScan');
+    const devices = await controller.getDevices(reScan);
     res.json(devices);
 })
 

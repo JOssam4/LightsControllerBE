@@ -71,11 +71,13 @@ interface KeyObj {
 export default class LightController {
     hueBaseUrl: string;
     hueUsername: string;
+    devices: DevicesResponse;
     deviceIdToDeviceManager: Map<string, Manager>;
     tuyaKeys: Map<string, string>;
     constructor(hueBaseUrl: string, hueUsername: string, devices: DevicesResponse) {
         this.hueBaseUrl = hueBaseUrl;
         this.hueUsername = hueUsername;
+        this.devices = devices;
         this.tuyaKeys = this.getTuyaKeys();
         this.deviceIdToDeviceManager = this.getDeviceIdToDeviceManagerMap(devices);
     }
@@ -137,10 +139,14 @@ export default class LightController {
         return deviceIdToDeviceManager;
     }
 
-    async getDevices(): Promise<DevicesResponse> {
-        const devices: DevicesResponse = await LightController.scan(this.hueBaseUrl, this.hueUsername);
-        this.deviceIdToDeviceManager = this.getDeviceIdToDeviceManagerMap(devices);
-        return devices;
+    async getDevices(reScan: boolean): Promise<DevicesResponse> {
+        if (reScan) {
+            const devices: DevicesResponse = await LightController.scan(this.hueBaseUrl, this.hueUsername);
+            this.devices = devices;
+            this.deviceIdToDeviceManager = this.getDeviceIdToDeviceManagerMap(devices);
+            return devices;
+        }
+        return this.devices;
     }
 
     async getState(deviceId: string): Promise<Response<LightState> | DeviceNotFoundResponse> {
