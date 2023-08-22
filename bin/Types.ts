@@ -1,17 +1,17 @@
-const enum TuyaMode {
+const enum Mode {
   WHITE = 'white',
   COLOR = 'colour',
   SCENE = 'scene',
   MUSIC = 'music',
 }
 
+/*
 const enum HueMode {
   HS = 'hs',
   XY = 'xy',
   CT = 'ct'
 }
-
-type Mode = TuyaMode | HueMode;
+ */
 
 enum ChangeMode {
   STATIC,
@@ -46,6 +46,7 @@ type findOptions = {
 
 type TuyaDeviceResponse = {
   id: string; // same as gwId. Use as key to identify device to server
+  name: string;
   ip: string;
   gwId: string;
   active: number;
@@ -74,7 +75,7 @@ type HueDeviceState = {
   xy: [number, number]; // Color as an array of xy-coordinates
   ct: number; // White color temperature, in range 153 (cold) - 500 (warm)
   alert: AlertState; // 'select' flashes light once, 'lselect' flashes repeatedly for 10 seconds
-  colormode: HueMode;
+  colormode: Mode;
   mode: string;
   reachable: boolean;
 }
@@ -98,5 +99,5 @@ type HueDeviceResponse = {
 
 type DeviceResponse = TuyaDeviceResponse | HueDeviceResponse;
 
-export type { getOptions, refreshOptions, setOptions, findOptions, Mode, DeviceResponse, TuyaDeviceResponse, HueDeviceResponse };
-export { TuyaMode, HueMode };
+export type { getOptions, refreshOptions, setOptions, findOptions, DeviceResponse, TuyaDeviceResponse, HueDeviceResponse };
+export { Mode };

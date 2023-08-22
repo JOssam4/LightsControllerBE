@@ -1,4 +1,4 @@
-import { getOptions, refreshOptions, setOptions, findOptions, TuyaMode} from "./Types";
+import {getOptions, refreshOptions, setOptions, findOptions, Mode} from "./Types";
 import {ChangeMode, Scene, SceneParts, parseScene, parseFullSceneIntoParts, compressScene, compressSceneParts, getBetterCompressedScene} from './Scenes';
 import Manager from "./Manager";
 
@@ -90,11 +90,11 @@ export default class TuyaManager extends Manager {
     return this.bulbDevice.set({dps: 20, set: status});
   }
 
-  getMode(): Promise<TuyaMode> {
+  getMode(): Promise<Mode> {
     return this.bulbDevice.get({dps: 21});
   }
 
-  setMode(mode: TuyaMode): Promise<Object> {
+  setMode(mode: Mode): Promise<Object> {
     return this.bulbDevice.set({dps: 21, set: mode});
   }
 
@@ -112,11 +112,11 @@ export default class TuyaManager extends Manager {
 
   async setHSV(hsv: string): Promise<Object> {
     const mode = await this.getMode();
-    if (mode !== TuyaMode.COLOR) {
+    if (mode !== Mode.COLOR) {
       return this.bulbDevice.set({
         multiple: true,
         data: {
-          '21': TuyaMode.COLOR,
+          '21': Mode.COLOR,
           '24': hsv,
         },
         shouldWaitForResponse: false
@@ -191,12 +191,12 @@ export default class TuyaManager extends Manager {
 
   async getBrightnessPercentage(): Promise<number> {
     const mode = await this.getMode();
-    if (mode === TuyaMode.WHITE) {
+    if (mode === Mode.WHITE) {
       return this.getWhiteBrightnessPercentage();
-    } else if (mode === TuyaMode.COLOR) {
+    } else if (mode === Mode.COLOR) {
       const [h, s, v] = await this.getBetterHSV();
       return v;
-    } else if (mode === TuyaMode.SCENE) {
+    } else if (mode === Mode.SCENE) {
       // Assumes all colors in scene have same brightness
       const sceneparts = await this.getCurrentScene();
       return sceneparts.parts[0].v / 10;
@@ -208,12 +208,12 @@ export default class TuyaManager extends Manager {
 
   async setBrightnessPercentage(brightness: number): Promise<Object> {
     const mode = await this.getMode();
-    if (mode === TuyaMode.WHITE) {
+    if (mode === Mode.WHITE) {
       return this.setWhiteBrightnessPercentage(brightness);
-    } else if (mode === TuyaMode.COLOR) {
+    } else if (mode === Mode.COLOR) {
       const [h, s, v] = await this.getBetterHSV();
       return this.setBetterHSV(h, s, brightness)
-    } else if (mode === TuyaMode.SCENE) {
+    } else if (mode === Mode.SCENE) {
       // Assumes all colors in scene have same brightness
       const sceneparts = await this.getCurrentScene();
       for (const part of sceneparts.parts) {

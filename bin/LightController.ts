@@ -1,7 +1,7 @@
 import HueManager from './HueManager';
 import Manager from './Manager';
 import TuyaManager from './TuyaManager';
-import {HueMode, Mode, TuyaMode, TuyaDeviceResponse, HueDeviceResponse} from './Types';
+import {Mode, TuyaDeviceResponse, HueDeviceResponse} from './Types';
 import { SceneParts } from './Scenes';
 import TuyaScanner from "./TuyaScanner";
 import HueScanner from "./HueScanner";
@@ -299,7 +299,7 @@ export default class LightController {
                 message: `deviceId ${deviceId} does not correspond with any found device!`
             };
         }
-        const mode = await managedDevice.getMode();
+        let mode = await managedDevice.getMode();
         return {
             responseCode: 200,
             data: {
@@ -319,17 +319,14 @@ export default class LightController {
             };
         }
         if (managedDevice instanceof HueManager) {
-            mode = mode as HueMode;
             const [h, s, v] = await managedDevice.getBetterHSV();
             const currentXY = await managedDevice.getXY();
             const currentWarmth = await managedDevice.getWhiteBrightnessPercentage();
             let status;
-            if (mode === HueMode.CT) {
+            if (mode === Mode.WHITE) {
                 status = await managedDevice.setWhiteBrightnessPercentage(currentWarmth);
-            } else if (mode === HueMode.HS) {
-                status = await managedDevice.setBetterHSV(h, s, v);
             } else {
-                status = await managedDevice.setXY(currentXY);
+                status = await managedDevice.setBetterHSV(h, s, v);
             }
             const completedSuccessfully = Object.keys(status).includes('success');
             return {
@@ -337,7 +334,6 @@ export default class LightController {
                 data: {completed: completedSuccessfully}
             };
         } else if (managedDevice instanceof TuyaManager) {
-            mode = mode as TuyaMode;
             await managedDevice.setMode(mode);
             const brightness = await managedDevice.getBrightnessPercentage();
             console.debug(`brightness: ${brightness}`);

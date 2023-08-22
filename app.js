@@ -19,35 +19,10 @@ const corsOptions = {
     optionsSuccessStatus: 200, // for legacy browser support
 }
 
-const TuyAPI = require('tuyapi');
-const Manager = require('./bin/Manager').default;
-const TuyaManager = require('./bin/TuyaManager').default;
-const HueManager = require('./bin/HueManager').default;
-
 const LightController = require('./bin/LightController').default;
 
 const PORT = 3001;
 
-const livingroom = new TuyAPI({
-    id: 'eb5bcfaa30722046765rxa',
-    key: '~AL+EpT$Sv%lu@*0',
-    version: 3.3,
-    ip: '10.0.0.119',
-    issueRefreshOnPing: true,
-});
-
-let livingroomManager;
-
-livingroom.find()
-    .then(() => livingroom.connect())
-    .then(() => {livingroomManager = new Manager(livingroom)});
-
-const bedroom = new TuyAPI({
-    id: 'eb9520010f9186a397re4p',
-    key: '6d30218d9928a979',
-    version: 3.3,
-    ip: '10.0.0.174'
-})
 
 const app = express();
 
@@ -68,7 +43,7 @@ LightController.create(hueSecrets.baseUrl, hueSecrets.username)
 
 app.get('/devices', async (req, res) => {
     if (!controller) {
-        const retryAfter = '30'
+        const retryAfter = '30';
         res.set('Retry-After', retryAfter);
         res.status(503).send(`Light controller not up yet. Please wait ${retryAfter} seconds.`);
         return;
@@ -80,7 +55,7 @@ app.get('/devices', async (req, res) => {
 
 app.get('/state', async (req, res) => {
     if (!controller) {
-        const retryAfter = '30'
+        const retryAfter = '30';
         res.set('Retry-After', retryAfter);
         res.status(503).send(`Light controller not up yet. Please wait ${retryAfter} seconds.`);
         return;
@@ -96,7 +71,7 @@ app.get('/state', async (req, res) => {
 
 app.get('/color', async (req, res) => {
     if (!controller) {
-        const retryAfter = '30'
+        const retryAfter = '30';
         res.set('Retry-After', retryAfter);
         res.status(503).send(`Light controller not up yet. Please wait ${retryAfter} seconds.`);
         return;
@@ -112,7 +87,7 @@ app.get('/color', async (req, res) => {
 
 app.put('/color', limiter, async (req, res) => {
     if (!controller) {
-        const retryAfter = '30'
+        const retryAfter = '30';
         res.set('Retry-After', retryAfter);
         res.status(503).send(`Light controller not up yet. Please wait ${retryAfter} seconds.`);
         return;
@@ -128,7 +103,7 @@ app.put('/color', limiter, async (req, res) => {
 
 app.post('/color', async (req, res) => {
     if (!controller) {
-        const retryAfter = '30'
+        const retryAfter = '30';
         res.set('Retry-After', retryAfter);
         res.status(503).send(`Light controller not up yet. Please wait ${retryAfter} seconds.`);
         return;
@@ -144,7 +119,7 @@ app.post('/color', async (req, res) => {
 
 app.get('/brightness', async (req, res) => {
     if (!controller) {
-        const retryAfter = '30'
+        const retryAfter = '30';
         res.set('Retry-After', retryAfter);
         res.status(503).send(`Light controller not up yet. Please wait ${retryAfter} seconds.`);
         return;
@@ -160,7 +135,7 @@ app.get('/brightness', async (req, res) => {
 
 app.put('/brightness', limiter, async (req, res) => {
     if (!controller) {
-        const retryAfter = '30'
+        const retryAfter = '30';
         res.set('Retry-After', retryAfter);
         res.status(503).send(`Light controller not up yet. Please wait ${retryAfter} seconds.`);
         return;
@@ -176,7 +151,7 @@ app.put('/brightness', limiter, async (req, res) => {
 
 app.post('/brightness', async (req, res) => {
     if (!controller) {
-        const retryAfter = '30'
+        const retryAfter = '30';
         res.set('Retry-After', retryAfter);
         res.status(503).send(`Light controller not up yet. Please wait ${retryAfter} seconds.`);
         return;
@@ -192,7 +167,7 @@ app.post('/brightness', async (req, res) => {
 
 app.get('/toggle', async (req, res) => {
     if (!controller) {
-        const retryAfter = '30'
+        const retryAfter = '30';
         res.set('Retry-After', retryAfter);
         res.status(503).send(`Light controller not up yet. Please wait ${retryAfter} seconds.`);
         return;
@@ -208,7 +183,7 @@ app.get('/toggle', async (req, res) => {
 
 app.put('/toggle', async (req, res) => {
     if (!controller) {
-        const retryAfter = '30'
+        const retryAfter = '30';
         res.set('Retry-After', retryAfter);
         res.status(503).send(`Light controller not up yet. Please wait ${retryAfter} seconds.`);
         return;
@@ -224,7 +199,7 @@ app.put('/toggle', async (req, res) => {
 
 app.get('/mode', async (req, res) => {
     if (!controller) {
-        const retryAfter = '30'
+        const retryAfter = '30';
         res.set('Retry-After', retryAfter);
         res.status(503).send(`Light controller not up yet. Please wait ${retryAfter} seconds.`);
         return;
@@ -240,7 +215,7 @@ app.get('/mode', async (req, res) => {
 
 app.put('/mode', async (req, res) => {
     if (!controller) {
-        const retryAfter = '30'
+        const retryAfter = '30';
         res.set('Retry-After', retryAfter);
         res.status(503).send(`Light controller not up yet. Please wait ${retryAfter} seconds.`);
         return;
@@ -256,7 +231,7 @@ app.put('/mode', async (req, res) => {
 
 app.get('/scene', async (req, res) => {
     if (!controller) {
-        const retryAfter = '30'
+        const retryAfter = '30';
         res.set('Retry-After', retryAfter);
         res.status(503).send(`Light controller not up yet. Please wait ${retryAfter} seconds.`);
         return;
@@ -272,7 +247,7 @@ app.get('/scene', async (req, res) => {
 
 app.put('/scene', async (req, res) => {
     if (!controller) {
-        const retryAfter = '30'
+        const retryAfter = '30';
         res.set('Retry-After', retryAfter);
         res.status(503).send(`Light controller not up yet. Please wait ${retryAfter} seconds.`);
         return;

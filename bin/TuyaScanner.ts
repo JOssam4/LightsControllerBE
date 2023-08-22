@@ -38,7 +38,7 @@ export default class TuyaScanner extends Scanner {
       if (decryptedMessage !== null) {
         const device = JSON.parse(decryptedMessage);
         const gwId = device.gwId;
-        this.devicesFound.set(gwId, {id: device.gwId, ...device});
+        this.devicesFound.set(gwId, {id: device.gwId, NAME: device.gwId, ...device});
       }
 
     });

@@ -1,6 +1,6 @@
 import axios from "axios";
 import Manager from "./Manager";
-import {HueMode} from "./Types";
+import {Mode} from './Types';
 
 enum AlertState {
     SELECT = 'select',
@@ -10,6 +10,12 @@ enum AlertState {
 enum EffectState {
     COLORLOOP = 'colorloop',
     NONE = 'none'
+}
+
+enum HueMode {
+    CT = "ct",
+    HS = "hs",
+    XY = "xy",
 }
 
 interface HueLightDeviceState {
@@ -54,9 +60,9 @@ type ErrorResponse = {
 type SetStatusResponse = SuccessResponse | ErrorResponse;
 
 export default class HueManager extends Manager {
-    private baseUrl: string;
-    private username: string;
-    private deviceId: number;
+    private readonly baseUrl: string;
+    private readonly username: string;
+    private readonly deviceId: number;
 
     constructor(baseUrl: string, username: string, deviceId: number) {
         super();
@@ -121,7 +127,7 @@ export default class HueManager extends Manager {
 
     async getBrightnessPercentage(): Promise<number> {
         const mode = await this.getMode();
-        if (mode === HueMode.CT) {
+        if (mode === Mode.WHITE) {
             return this.getWhiteBrightnessPercentage();
         } else {
             const [h, s, v] = await this.getBetterHSV();
@@ -131,16 +137,22 @@ export default class HueManager extends Manager {
 
     async setBrightnessPercentage(brightness: number): Promise<SetStatusResponse[]> {
         const mode = await this.getMode();
-        if (mode === HueMode.CT) {
+        if (mode === Mode.WHITE) {
             return this.setWhiteBrightnessPercentage(brightness);
         }
         const payload = {bri: Math.round(brightness * 254 / 100)};
         return this.setDeviceStatus(payload);
     }
 
-    async getMode(): Promise<HueMode> {
+    async getMode(): Promise<Mode> {
         return this.getDeviceStatus()
-            .then((status: HueLightDeviceState) => status.colormode);
+            .then((status: HueLightDeviceState) => {
+                if (status.colormode === HueMode.HS || status.colormode === HueMode.XY) {
+                    return Mode.COLOR;
+                } else {
+                    return Mode.WHITE
+                }
+            });
     }
 
     async getXY(): Promise<[number, number]> {
