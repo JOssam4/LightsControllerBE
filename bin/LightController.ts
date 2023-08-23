@@ -66,6 +66,7 @@ type Response<Type> = {
 interface KeyObj {
     id: string;
     key: string;
+    name: string;
 }
 
 export default class LightController {
@@ -98,10 +99,20 @@ export default class LightController {
         return ret;
     }
 
+    private static getTuyaNames(): Map<string, string> {
+        const data = fs.readFileSync('./bin/tuya_keys.json');
+        const names: KeyObj[] = JSON.parse(data.toString());
+        const ret = new Map<string, string>();
+        names.forEach((key: KeyObj) => {
+            ret.set(key.id, key.name);
+        });
+        return ret;
+    }
+
     private static async scan(hueBaseUrl: string, hueUsername: string): Promise<DevicesResponse> {
         const hueScanner: HueScanner = new HueScanner(hueBaseUrl, hueUsername);
         const hueDevices: HueDeviceResponse[] = await hueScanner.scan();
-        const tuyaScanner: TuyaScanner = new TuyaScanner();
+        const tuyaScanner: TuyaScanner = new TuyaScanner(this.getTuyaNames());
         const tuyaDevices: TuyaDeviceResponse[] = await tuyaScanner.scan();
         return {
             hue: hueDevices,
@@ -189,28 +200,39 @@ export default class LightController {
         }
     }
 
-    async putColor(deviceId: string, hsv: HSVState): Promise<Response<CompletedStatus> | DeviceNotFoundResponse> {
-        const managedDevice = this.deviceIdToDeviceManager.get(deviceId);
-        if (!managedDevice) {
+    async putColor(devices: string[], hsv: HSVState): Promise<Response<CompletedStatus> | DeviceNotFoundResponse> {
+        // const managedDevice = this.deviceIdToDeviceManager.get(deviceId);
+        const managedDevices = devices.map((deviceId: string) => this.deviceIdToDeviceManager.get(deviceId));
+        if (!managedDevices.every((managedDevice: Manager | undefined) => managedDevice !== undefined)) {
             return {
                 responseCode: 400,
-                message: `deviceId ${deviceId} does not correspond with any found device!`
+                message: `Tried to put color on device with invalid id!`,
             };
         }
         const {h, s, v} = hsv;
-        return managedDevice.setBetterHSV(h, s, v)
-            .then(() => {
-              return {
-                  responseCode: 200, data: {completed: true}
-              }
-            })
-            .catch((err) => {
-              console.error(err);
+        const promises = (managedDevices as Manager[]).map((managedDevice: Manager) => {
+            return managedDevice.setBetterHSV(h, s, v)
+              .then(() => {
+                  return {
+                      responseCode: 200, data: {completed: true}
+                  }
+              })
+              .catch((err) => {
+                  console.error(err);
+                  return {
+                      responseCode: 200,
+                      data: {completed: false}
+                  };
+              });
+        })
+        return Promise.all(promises)
+          .then((responses: Response<CompletedStatus>[]) => {
               return {
                   responseCode: 200,
-                  data: {completed: false}
-              };
-          });
+                  data: {completed: responses.every((response: Response<CompletedStatus>) => response.data.completed)}
+              } as Response<CompletedStatus>;
+          })
+
     }
 
     async getBrightness(deviceId: string): Promise<Response<BrightnessState> | DeviceNotFoundResponse> {
@@ -228,14 +250,17 @@ export default class LightController {
         };
     }
 
-    async putBrightness(deviceId: string, brightness: number): Promise<Response<CompletedStatus> | DeviceNotFoundResponse> {
-        const managedDevice = this.deviceIdToDeviceManager.get(deviceId);
-        if (!managedDevice) {
+    async putBrightness(devices: string[], brightness: number): Promise<Response<CompletedStatus> | DeviceNotFoundResponse> {
+        // const managedDevice = this.deviceIdToDeviceManager.get(deviceId);
+        const managedDevices = devices.map((deviceId: string) => this.deviceIdToDeviceManager.get(deviceId));
+        if (!managedDevices.every((managedDevice: Manager | undefined) => managedDevice !== undefined)) {
             return {
                 responseCode: 400,
-                message: `deviceId ${deviceId} does not correspond with any found device!`
+                message: `Tried to put brightness on device with invalid id!`,
             };
         }
+
+        const promises = (managedDevices as Manager[]).map((managedDevice: Manager) => {
         if (brightness < 0) {
             brightness = 0;
         } else if (brightness > 100) {
@@ -253,7 +278,16 @@ export default class LightController {
                     responseCode: 200,
                     data: {completed: false}};
             });
-            }
+        });
+
+        return Promise.all(promises)
+          .then((responses: Response<CompletedStatus>[]) => {
+              return {
+                  responseCode: 200,
+                  data: {completed: responses.every((response: Response<CompletedStatus>) => response.data.completed)}
+              } as Response<CompletedStatus>;
+          });
+    }
     async getToggle(deviceId: string): Promise<Response<ToggleState> | DeviceNotFoundResponse> {
         const managedDevice = this.deviceIdToDeviceManager.get(deviceId);
         if (!managedDevice) {
@@ -269,26 +303,36 @@ export default class LightController {
         };
     }
 
-    async putToggle(deviceId: string, toggle: boolean): Promise<Response<CompletedStatus> | DeviceNotFoundResponse> {
-        const managedDevice = this.deviceIdToDeviceManager.get(deviceId);
-        if (!managedDevice) {
+    async putToggle(devices: string[], toggle: boolean): Promise<Response<CompletedStatus> | DeviceNotFoundResponse> {
+        const managedDevices = devices.map((deviceId: string) => this.deviceIdToDeviceManager.get(deviceId));
+        if (!managedDevices.every((managedDevice: Manager | undefined) => managedDevice !== undefined)) {
             return {
                 responseCode: 400,
-                message: `deviceId ${deviceId} does not correspond with any found device!`
+                message: `Tried to put toggle on device with invalid id!`,
             };
         }
-        return managedDevice.setToggleStatus(toggle)
-            .then(() => {
-                return {
-                    responseCode: 200,
-                    data: {completed: true}
-                };
-            })
-            .catch(() => {
-                return {
-                    responseCode: 200,
-                    data: {completed: false}};
-            });
+        const promises = (managedDevices as Manager[]).map((managedDevice: Manager) => {
+            return managedDevice.setToggleStatus(toggle)
+              .then(() => {
+                  return {
+                      responseCode: 200,
+                      data: {completed: true}
+                  };
+              })
+              .catch(() => {
+                  return {
+                      responseCode: 200,
+                      data: {completed: false}
+                  };
+              });
+        });
+        return Promise.all(promises)
+          .then((responses: Response<CompletedStatus>[]) => {
+              return {
+                  responseCode: 200,
+                  data: {completed: responses.every((response: Response<CompletedStatus>) => response.data.completed)}
+              } as Response<CompletedStatus>;
+          });
     }
 
     async getMode(deviceId: string): Promise<Response<ModeState> | DeviceNotFoundResponse> {
@@ -310,42 +354,52 @@ export default class LightController {
 
     // Since setting modes isn't as straightforward on Hue lights, this is an abstraction over setting hue/saturation, ct, or xy values to what they already were
     // Note: setting hue lights to hue/saturation mode won't have any visible effect
-    async putMode(deviceId: string, mode: Mode): Promise<Response<SetModeState> | DeviceNotFoundResponse> {
-        const managedDevice = this.deviceIdToDeviceManager.get(deviceId);
-        if (!managedDevice) {
+    async putMode(devices: string[], mode: Mode): Promise<Response<SetModeState> | DeviceNotFoundResponse> {
+        // const managedDevice = this.deviceIdToDeviceManager.get(deviceId);
+        const managedDevices = devices.map((deviceId: string) => this.deviceIdToDeviceManager.get(deviceId));
+        if (!managedDevices.every((managedDevice: Manager | undefined) => managedDevice !== undefined)) {
             return {
                 responseCode: 400,
-                message: `deviceId ${deviceId} does not correspond with any found device!`
+                message: `Tried to put toggle on device with invalid id!`,
             };
         }
-        if (managedDevice instanceof HueManager) {
-            const [h, s, v] = await managedDevice.getBetterHSV();
-            const currentXY = await managedDevice.getXY();
-            const currentWarmth = await managedDevice.getWhiteBrightnessPercentage();
-            let status;
-            if (mode === Mode.WHITE) {
-                status = await managedDevice.setWhiteBrightnessPercentage(currentWarmth);
-            } else {
-                status = await managedDevice.setBetterHSV(h, s, v);
+        const promises = (managedDevices as Manager[]).map(async (managedDevice: Manager) => {
+            if (managedDevice instanceof HueManager) {
+                const [h, s, v] = await managedDevice.getBetterHSV();
+                const currentXY = await managedDevice.getXY();
+                const currentWarmth = await managedDevice.getWhiteBrightnessPercentage();
+                let status;
+                if (mode === Mode.WHITE) {
+                    status = await managedDevice.setWhiteBrightnessPercentage(currentWarmth);
+                } else {
+                    status = await managedDevice.setBetterHSV(h, s, v);
+                }
+                const completedSuccessfully = Object.keys(status).includes('success');
+                return {
+                    responseCode: 200,
+                    data: {completed: completedSuccessfully}
+                };
+            } else if (managedDevice instanceof TuyaManager) {
+                await managedDevice.setMode(mode);
+                const brightness = await managedDevice.getBrightnessPercentage();
+                console.debug(`brightness: ${brightness}`);
+                return {
+                    responseCode: 200,
+                    data: {completed: true, brightness}
+                };
             }
-            const completedSuccessfully = Object.keys(status).includes('success');
             return {
                 responseCode: 200,
-                data: {completed: completedSuccessfully}
+                data: {completed: false}
             };
-        } else if (managedDevice instanceof TuyaManager) {
-            await managedDevice.setMode(mode);
-            const brightness = await managedDevice.getBrightnessPercentage();
-            console.debug(`brightness: ${brightness}`);
-            return {
-                responseCode: 200,
-                data: {completed: true, brightness}
-            };
-        }
-        return {
-            responseCode: 200,
-            data: {completed: false}
-        };
+        });
+        return Promise.all(promises)
+          .then((responses: Response<CompletedStatus>[]) => {
+              return {
+                  responseCode: 200,
+                  data: {completed: responses.every((response: Response<CompletedStatus>) => response.data.completed)}
+              } as Response<CompletedStatus>;
+          });
     }
 
     async getScene(deviceId: string): Promise<Response<SceneParts> | DeviceDoesNotSupportOperationResponse | DeviceNotFoundResponse> {
@@ -371,24 +425,34 @@ export default class LightController {
         }
     }
 
-    async putScene(deviceId: string, scene: SceneParts): Promise<Response<CompletedStatus> | DeviceDoesNotSupportOperationResponse | DeviceNotFoundResponse> {
-        const managedDevice = this.deviceIdToDeviceManager.get(deviceId);
-        if (!managedDevice) {
-            return {
-                responseCode: 400,
-                message: `deviceId ${deviceId} does not correspond with any found device!`
-            };
-        }
-        if (managedDevice instanceof TuyaManager) {
-            await managedDevice.setCurrentScene(scene);
-            return {
-                responseCode: 200,
-                data: {completed: true}
-            };
-        }
-        return {
-            responseCode: 405,
-            message: `deviceId ${deviceId} does not support scenes.`
-        }
-    }
+//     async putScene(devices: string[], scene: SceneParts): Promise<Response<CompletedStatus> | DeviceDoesNotSupportOperationResponse | DeviceNotFoundResponse> {
+//         // const managedDevice = this.deviceIdToDeviceManager.get(deviceId);
+//         const managedDevices = devices.map((deviceId: string) => this.deviceIdToDeviceManager.get(deviceId));
+//         if (!managedDevices.every((managedDevice: Manager | undefined) => managedDevice !== undefined)) {
+//             return {
+//                 responseCode: 400,
+//                 message: `Tried to put toggle on device with invalid id!`,
+//             };
+//         }
+//         const promises = (managedDevices as Manager[]).map(async (managedDevice: Manager) => {
+//             if (managedDevice instanceof TuyaManager) {
+//                 await managedDevice.setCurrentScene(scene);
+//                 return {
+//                     responseCode: 200,
+//                     data: {completed: true}
+//                 };
+//             }
+//             return {
+//                 responseCode: 405,
+//                 message: `Device does not support scenes.`
+//             }
+//         });
+//         return Promise.all(promises)
+//           .then((responses: Response<CompletedStatus>[]) => {
+//               return {
+//                   responseCode: 200,
+//                   data: {completed: responses.every((response: Response<CompletedStatus>) => response.data.completed)}
+//               } as Response<CompletedStatus>;
+//           });
+//     }
 }
