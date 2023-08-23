@@ -9,13 +9,15 @@ export default class TuyaScanner extends Scanner {
   server: dgram.Socket;
   connectionIsOpen: boolean;
   devicesFound: Map<string, TuyaDeviceResponse>; // ip addr -> device response to verify uniqueness
+  deviceIdToNameMap: Map<string, string>
   static SCANTIME_SECONDS: number = 20;
   // credit to tuya-convert and tinytuya
   static UDPKEY = createHash('md5').update('yGAdlopoPVldABfn').digest();
   static PREFIX_55AA_BIN = Buffer.from('\x00\x00U\xaa', 'ascii');
   static PREFIX_6699_BIN = Buffer.from('\x00\x00\x66\x99', 'ascii');
-  constructor() {
+  constructor(deviceIdToNameMap: Map<string, string>) {
     super();
+    this.deviceIdToNameMap = deviceIdToNameMap;
     this.server = dgram.createSocket('udp4');
     this.connectionIsOpen = false;
     this.devicesFound = new Map<string, TuyaDeviceResponse>();
@@ -38,7 +40,7 @@ export default class TuyaScanner extends Scanner {
       if (decryptedMessage !== null) {
         const device = JSON.parse(decryptedMessage);
         const gwId = device.gwId;
-        this.devicesFound.set(gwId, {id: device.gwId, NAME: device.gwId, ...device});
+        this.devicesFound.set(gwId, {id: device.gwId, name: this.deviceIdToNameMap.get(device.gwId), ...device});
       }
 
     });
