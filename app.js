@@ -124,12 +124,20 @@ app.put('/brightness', limiter, async (req, res) => {
         res.status(503).send(`Light controller not up yet. Please wait ${retryAfter} seconds.`);
         return;
     }
-    const devices = req.query.device.split(',');
-    const result = await controller.putBrightness(devices, req.body.brightness);
-    if (result.responseCode === 200) {
-        res.json(result.data);
-    } else {
-        res.status(result.responseCode).send(result.message);
+    try {
+        const devices = req.query.device.split(',');
+        const result = await controller.putBrightness(devices, req.body.brightness);
+        if (result.responseCode === 200) {
+            res.json(result.data);
+        } else {
+            res.status(result.responseCode).send(result.message);
+        }
+    } catch (e) {
+        if (e instanceof TypeError) {
+            res.status(400).send(`Could not parse device id: ${req.query.device}`);
+        } else {
+            res.status(500).send('Error occurred while processing request');
+        }
     }
 });
 
@@ -140,8 +148,8 @@ app.get('/toggle', async (req, res) => {
         res.status(503).send(`Light controller not up yet. Please wait ${retryAfter} seconds.`);
         return;
     }
-    const devices = req.query.device.split(',');
-    const result = await controller.getToggle(devices);
+    const device = req.query.device;
+    const result = await controller.getToggle(device);
     if (result.responseCode === 200) {
         res.json(result.data);
     } else {
@@ -172,8 +180,8 @@ app.get('/mode', async (req, res) => {
         res.status(503).send(`Light controller not up yet. Please wait ${retryAfter} seconds.`);
         return;
     }
-    const devices = req.query.device.split(',');
-    const result = await controller.getMode(devices);
+    const device = req.query.device;
+    const result = await controller.getMode(device);
     if (result.responseCode === 200) {
         res.json(result.data);
     } else {
@@ -197,7 +205,23 @@ app.put('/mode', async (req, res) => {
     }
 });
 
-app.get('/scene', async (req, res) => {
+app.get('/warmth', async (req, res) => {
+    if (!controller) {
+        const retryAfter = '30';
+        res.set('Retry-After', retryAfter);
+        res.status(503).send(`Light controller not up yet. Please wait ${retryAfter} seconds.`);
+        return;
+    }
+    const device = req.query.device;
+    const result = await controller.getWarmth(device);
+    if (result.responseCode === 200) {
+        res.json(result.data);
+    } else {
+        res.status(result.responseCode).send(result.message);
+    }
+});
+
+app.put('/warmth', async (req, res) => {
     if (!controller) {
         const retryAfter = '30';
         res.set('Retry-After', retryAfter);
@@ -205,7 +229,23 @@ app.get('/scene', async (req, res) => {
         return;
     }
     const devices = req.query.device.split(',');
-    const result = await controller.getScene(devices);
+    const result = await controller.putWarmth(devices, req.body.warmth);
+    if (result.responseCode === 200) {
+        res.json(result.data);
+    } else {
+        res.status(result.responseCode).send(result.message);
+    }
+})
+
+app.get('/scene', async (req, res) => {
+    if (!controller) {
+        const retryAfter = '30';
+        res.set('Retry-After', retryAfter);
+        res.status(503).send(`Light controller not up yet. Please wait ${retryAfter} seconds.`);
+        return;
+    }
+    const device = req.query.device;
+    const result = await controller.getScene(device);
     if (result.responseCode === 200) {
         res.json(result.data);
     } else {

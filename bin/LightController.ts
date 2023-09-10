@@ -16,7 +16,8 @@ interface HSVState {
 
 type LightState = {
     color: HSVState;
-    white: number;
+    white: number | undefined;
+    temperature: number | undefined;
     toggle: boolean;
     mode: Mode;
     sceneBrightness?: number;
@@ -36,6 +37,10 @@ interface ToggleState {
 
 interface ModeState {
     mode: Mode;
+}
+
+interface WarmthState {
+    warmth: number | undefined;
 }
 
 interface SetModeState {
@@ -171,17 +176,20 @@ export default class LightController {
         const toggle = await managedDevice.getToggleStatus();
         const [h, s, v] = await managedDevice.getBetterHSV();
         const mode = await managedDevice.getMode();
-        const white = await managedDevice.getWhiteBrightnessPercentage();
+        const white = (managedDevice instanceof TuyaManager) ? await managedDevice.getWhiteBrightnessPercentage() : undefined;
+        const temperature = (managedDevice instanceof HueManager) ? await managedDevice.getTemperature() : undefined;
         const sceneBrightness = (managedDevice instanceof TuyaManager) ? await managedDevice.getBrightnessPercentage() : undefined;
         return {
             responseCode: 200,
             data: {
-            color: {h, s, v},
-            white,
-            toggle,
-            mode,
-            sceneBrightness
-        }};
+                color: {h, s, v},
+                white,
+                temperature,
+                toggle,
+                mode,
+                sceneBrightness
+            }
+        };
     }
 
     async getColor(deviceId: string): Promise<Response<HSVState> | DeviceNotFoundResponse> {
@@ -366,14 +374,7 @@ export default class LightController {
         const promises = (managedDevices as Manager[]).map(async (managedDevice: Manager) => {
             if (managedDevice instanceof HueManager) {
                 const [h, s, v] = await managedDevice.getBetterHSV();
-                const currentXY = await managedDevice.getXY();
-                const currentWarmth = await managedDevice.getWhiteBrightnessPercentage();
-                let status;
-                if (mode === Mode.WHITE) {
-                    status = await managedDevice.setWhiteBrightnessPercentage(currentWarmth);
-                } else {
-                    status = await managedDevice.setBetterHSV(h, s, v);
-                }
+                const status = await managedDevice.setBetterHSV(h, s, v);
                 const completedSuccessfully = Object.keys(status).includes('success');
                 return {
                     responseCode: 200,
@@ -423,6 +424,55 @@ export default class LightController {
             responseCode: 405,
             message: `deviceId ${deviceId} does not support scenes.`
         }
+    }
+
+    async getWarmth(deviceId: string): Promise<Response<WarmthState> | DeviceNotFoundResponse> {
+        const managedDevice = this.deviceIdToDeviceManager.get(deviceId);
+        if (!managedDevice) {
+            return {
+                responseCode: 400,
+                message: `deviceId ${deviceId} does not correspond with any found device!`
+            };
+        }
+        const warmth = await managedDevice.getWarmthPercentage();
+        return {
+            responseCode: 200,
+            data: {
+                warmth
+            }
+        };
+    }
+
+    async putWarmth(devices: string[], warmth: number): Promise<Response<CompletedStatus> | DeviceNotFoundResponse> {
+        const managedDevices = devices.map((deviceId: string) => this.deviceIdToDeviceManager.get(deviceId));
+        if (!managedDevices.every((managedDevice: Manager | undefined) => managedDevice !== undefined)) {
+            return {
+                responseCode: 400,
+                message: `Tried to put warmth on device with invalid id!`,
+            };
+        }
+        const promises = (managedDevices as Manager[]).map((managedDevice: Manager) => {
+            return managedDevice.setWarmthPercentage(warmth)
+              .then(() => {
+                  return {
+                      responseCode: 200,
+                      data: {completed: true}
+                  };
+              })
+              .catch(() => {
+                  return {
+                      responseCode: 200,
+                      data: {completed: false}
+                  };
+              });
+        });
+        return Promise.all(promises)
+          .then((responses: Response<CompletedStatus>[]) => {
+              return {
+                  responseCode: 200,
+                  data: {completed: responses.every((response: Response<CompletedStatus>) => response.data.completed)}
+              } as Response<CompletedStatus>;
+          });
     }
 
 //     async putScene(devices: string[], scene: SceneParts): Promise<Response<CompletedStatus> | DeviceDoesNotSupportOperationResponse | DeviceNotFoundResponse> {

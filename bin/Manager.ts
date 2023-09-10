@@ -10,8 +10,8 @@ abstract class Manager {
     abstract getBrightnessPercentage(): Promise<number>;
     abstract setBrightnessPercentage(brightness: number): Promise<Object>;
     // Use white brightness for both brightness and temp because for Hue, brightness can be set via HSV
-    abstract getWhiteBrightnessPercentage(): Promise<number>;
-    abstract setWhiteBrightnessPercentage(percentage: number): Promise<Object>;
+    abstract getWarmthPercentage(): Promise<number | undefined>;
+    abstract setWarmthPercentage(percentage: number): Promise<Object>;
     abstract getMode(): Promise<Mode>;
     protected getRgbs(c: number, x: number, h: number): [number, number, number] {
         if (h >= 0 && h < 60) {

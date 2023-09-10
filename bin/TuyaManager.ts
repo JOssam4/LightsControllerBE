@@ -1,3 +1,4 @@
+import { readFileSync } from 'fs';
 import {getOptions, refreshOptions, setOptions, findOptions, Mode} from "./Types";
 import {ChangeMode, Scene, SceneParts, parseScene, parseFullSceneIntoParts, compressScene, compressSceneParts, getBetterCompressedScene} from './Scenes';
 import Manager from "./Manager";
@@ -73,12 +74,36 @@ interface BulbDevice {
   toggle: (property: number) => Promise<Boolean>;
 }
 
+interface HSObject {
+  hue: number;
+  sat: number;
+}
+
 export default class TuyaManager extends Manager {
   private bulbDevice: BulbDevice;
-
+  private warmthPercentageToHueSatMap: Map<string, HSObject>;
+  private hueSatToWarmthPercentageMap: Map<string, string>;
   constructor(device: BulbDevice) {
     super();
     this.bulbDevice = device;
+    this.warmthPercentageToHueSatMap = this.getWarmthPercentageToHueSatMap();
+    this.hueSatToWarmthPercentageMap = this.getHueSatToWarmthPercentageMap();
+  }
+
+  private getWarmthPercentageToHueSatMap(): Map<string, HSObject> {
+    const rawData = readFileSync('./bin/tempPercentageToBetterHSV.json');
+    const json = JSON.parse(rawData.toString());
+    return new Map<string, HSObject>(Object.entries(json));
+  }
+
+  private getHueSatToWarmthPercentageMap(): Map<string, string> {
+    const hueSatToWarmthPercentageMap = new Map<string, string>();
+    this.warmthPercentageToHueSatMap.forEach((value, key, map) => {
+      const {hue, sat} = value;
+      const hueSatKey = `${hue},${sat}`;
+      hueSatToWarmthPercentageMap.set(hueSatKey, key);
+    });
+    return hueSatToWarmthPercentageMap;
   }
 
   // BASE LEVEL METHODS, just to interact with nodejs library.
@@ -224,6 +249,26 @@ export default class TuyaManager extends Manager {
       console.log('unsupported mode. Supported modes are WHITE, COLOR, and SCENE');
       return {}
     }
+  }
+
+  async getWarmthPercentage(): Promise<number | undefined> {
+    const [h, s, v] = await this.getBetterHSV();
+    const hueSatKey = `${h},${s}`;
+    if (this.hueSatToWarmthPercentageMap.has(hueSatKey)) {
+      return parseInt(this.hueSatToWarmthPercentageMap.get(hueSatKey)!);
+    } else {
+      return undefined;
+    }
+  }
+
+  async setWarmthPercentage(percentage: number): Promise<Object> {
+    if (!this.warmthPercentageToHueSatMap.has(percentage.toString())) {
+      console.log(`Brightness percentage not supported for percentage ${percentage}`);
+      return {};
+    }
+    const {hue, sat} = this.warmthPercentageToHueSatMap.get(percentage.toString())!;
+    const bri = await this.getBrightnessPercentage();
+    return this.setBetterHSV(hue, sat, bri);
   }
 
   async getCurrentScene(): Promise<SceneParts> {

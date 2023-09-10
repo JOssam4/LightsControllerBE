@@ -44,7 +44,7 @@ interface HueLightDeviceStatePayload {
 }
 
 type SuccessResponse = {
-    success: Object;
+    success: Object | boolean;
 }
 
 interface ErrorObj {
@@ -80,7 +80,7 @@ export default class HueManager extends Manager {
     private async setDeviceStatus(payload: HueLightDeviceStatePayload): Promise<SetStatusResponse[]> {
         // const resp = await fetch(`${this.baseUrl}/api/${this.username}/lights/${this.deviceId}/state`, { method: 'PUT', body: JSON.stringify(payload) });
         // return await resp.json();
-        return await axios.put(`${this.baseUrl}/api/${this.username}/lights/${this.deviceId}/state`, payload);
+        return (await axios.put(`${this.baseUrl}/api/${this.username}/lights/${this.deviceId}/state`, payload)).data;
     } 
     
     async getToggleStatus(): Promise<boolean> {
@@ -126,20 +126,11 @@ export default class HueManager extends Manager {
     }
 
     async getBrightnessPercentage(): Promise<number> {
-        const mode = await this.getMode();
-        if (mode === Mode.WHITE) {
-            return this.getWhiteBrightnessPercentage();
-        } else {
-            const [h, s, v] = await this.getBetterHSV();
-            return v;
-        }
+        const [h, s, v] = await this.getBetterHSV();
+        return v;
     }
 
     async setBrightnessPercentage(brightness: number): Promise<SetStatusResponse[]> {
-        const mode = await this.getMode();
-        if (mode === Mode.WHITE) {
-            return this.setWhiteBrightnessPercentage(brightness);
-        }
         const payload = {bri: Math.round(brightness * 254 / 100)};
         return this.setDeviceStatus(payload);
     }
@@ -169,24 +160,24 @@ export default class HueManager extends Manager {
         return this.setXY([x, y]);
     }
 
-    private async getWhiteColorTemperature(): Promise<number> {
+    async getTemperature(): Promise<number> {
         return this.getDeviceStatus()
             .then((status: HueLightDeviceState) => status.ct);
     }
 
-    private setWhiteColorTemperature(colorTemp: number): Promise<SetStatusResponse[]> {
+    setTemperature(colorTemp: number): Promise<SetStatusResponse[]> {
         const payload = {ct: colorTemp};
         return this.setDeviceStatus(payload);
     }
 
-    async getWhiteBrightnessPercentage(): Promise<number> {
-        return this.getWhiteColorTemperature()
-            .then((whiteColorTemperature: number) => Math.round(((whiteColorTemperature - 153) / 346) * 100));
+    async getWarmthPercentage(): Promise<number> {
+        return this.getTemperature()
+          .then((temperature: number) => Math.round(((temperature - 153) / 346) * 100));
     }
 
-    setWhiteBrightnessPercentage(percentage: number): Promise<SetStatusResponse[]> {
+    async setWarmthPercentage(percentage: number): Promise<SetStatusResponse[]> {
         const rawTemp = Math.round(percentage * 346 / 100 + 153);
-        return this.setWhiteColorTemperature(rawTemp);
+        return this.setTemperature(rawTemp);
     }
 
     async getAlert(): Promise<AlertState> {
