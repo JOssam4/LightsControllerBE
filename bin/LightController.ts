@@ -374,8 +374,11 @@ export default class LightController {
         const promises = (managedDevices as Manager[]).map(async (managedDevice: Manager) => {
             if (managedDevice instanceof HueManager) {
                 const [h, s, v] = await managedDevice.getBetterHSV();
-                const status = await managedDevice.setBetterHSV(h, s, v);
-                const completedSuccessfully = Object.keys(status).includes('success');
+                const currentWarmth = await managedDevice.getWarmthPercentage();
+                const status = (mode === Mode.COLOR)
+                  ? await managedDevice.setBetterHSV(h, s, v)
+                  : await managedDevice.setWarmthPercentage(currentWarmth);
+                const completedSuccessfully = status.every(each => Object.keys(each).includes('success'));
                 return {
                     responseCode: 200,
                     data: {completed: completedSuccessfully}
