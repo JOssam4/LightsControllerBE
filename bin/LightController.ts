@@ -177,7 +177,7 @@ export default class LightController {
         const [h, s, v] = await managedDevice.getBetterHSV();
         const mode = await managedDevice.getMode();
         const white = (managedDevice instanceof TuyaManager) ? await managedDevice.getWhiteBrightnessPercentage() : undefined;
-        const temperature = (managedDevice instanceof HueManager) ? await managedDevice.getTemperature() : undefined;
+        const temperature = (managedDevice instanceof HueManager) ? await managedDevice.getWarmthPercentage() : undefined;
         const sceneBrightness = (managedDevice instanceof TuyaManager) ? await managedDevice.getBrightnessPercentage() : undefined;
         return {
             responseCode: 200,
