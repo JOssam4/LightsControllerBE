@@ -13,6 +13,7 @@ abstract class Manager {
     abstract getWarmthPercentage(): Promise<number | undefined>;
     abstract setWarmthPercentage(percentage: number): Promise<Object>;
     abstract getMode(): Promise<Mode>;
+    abstract setTimer(time: Date): Promise<boolean>;
     protected getRgbs(c: number, x: number, h: number): [number, number, number] {
         if (h >= 0 && h < 60) {
             return [c, x, 0];

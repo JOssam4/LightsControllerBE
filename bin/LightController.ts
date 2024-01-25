@@ -478,6 +478,38 @@ export default class LightController {
           });
     }
 
+    async putTimer(devices: string[], time: Date): Promise<Response<CompletedStatus> | DeviceNotFoundResponse> {
+        const managedDevices = devices.map((deviceId: string) => this.deviceIdToDeviceManager.get(deviceId));
+        if (!managedDevices.every((managedDevice: Manager | undefined) => managedDevice !== undefined)) {
+            return {
+                responseCode: 400,
+                message: `Cannot set timer on device with invalid id!`,
+            };
+        }
+        const promises = (managedDevices as Manager[]).map((managedDevice: Manager) => {
+            return managedDevice.setTimer(time)
+              .then(() => {
+                  return {
+                      responseCode: 200,
+                      data: {completed: true}
+                  };
+              })
+              .catch(() => {
+                  return {
+                      responseCode: 200,
+                      data: {completed: false}
+                  };
+              });
+        });
+        return Promise.all(promises)
+          .then((responses: Response<CompletedStatus>[]) => {
+              return {
+                  responseCode: 200,
+                  data: {completed: responses.every((response: Response<CompletedStatus>) => response.data.completed)}
+              } as Response<CompletedStatus>;
+          });
+    }
+
 //     async putScene(devices: string[], scene: SceneParts): Promise<Response<CompletedStatus> | DeviceDoesNotSupportOperationResponse | DeviceNotFoundResponse> {
 //         // const managedDevice = this.deviceIdToDeviceManager.get(deviceId);
 //         const managedDevices = devices.map((deviceId: string) => this.deviceIdToDeviceManager.get(deviceId));

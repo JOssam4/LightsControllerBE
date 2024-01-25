@@ -209,4 +209,12 @@ export default class HueManager extends Manager {
         const payload = {effect: effect};
         return this.setDeviceStatus(payload);
     }
+
+    setTimer(time: Date): Promise<boolean> {
+        const now = Date.now();
+        const diffThenVsNowInMs: number = time.valueOf() - now.valueOf();
+        // if difference is negative or 0, execute immediately
+        setTimeout(() => this.setToggleStatus(false), diffThenVsNowInMs);
+        return Promise.resolve(true);
+    }
 }

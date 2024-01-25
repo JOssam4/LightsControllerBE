@@ -281,5 +281,12 @@ export default class TuyaManager extends Manager {
     return this.setScene(compressedScene);
   }
 
+  async setTimer(time: Date): Promise<boolean> {
+    const now = Date.now();
+    const diffThenVsNowInMs: number = time.valueOf() - now.valueOf();
+    // if difference is negative or 0, execute immediately
+    setTimeout(() => this.setToggleStatus(false), diffThenVsNowInMs);
+    return Promise.resolve(true);
+  }
 }
 
