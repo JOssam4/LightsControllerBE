@@ -1,4 +1,5 @@
-import {Mode} from "./Types";
+import {Mode} from './Types';
+import {SceneParts} from './Scenes';
 
 abstract class Manager {
     abstract getToggleStatus(): Promise<boolean>;
@@ -14,6 +15,8 @@ abstract class Manager {
     abstract setWarmthPercentage(percentage: number): Promise<Object>;
     abstract getMode(): Promise<Mode>;
     abstract setTimer(time: Date): Promise<boolean>;
+    abstract getSceneParts(): Promise<SceneParts>;
+    abstract setSceneFromParts(sceneparts: SceneParts): Promise<Object>;
     protected getRgbs(c: number, x: number, h: number): [number, number, number] {
         if (h >= 0 && h < 60) {
             return [c, x, 0];

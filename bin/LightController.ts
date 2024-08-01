@@ -368,7 +368,7 @@ export default class LightController {
         if (!managedDevices.every((managedDevice: Manager | undefined) => managedDevice !== undefined)) {
             return {
                 responseCode: 400,
-                message: `Tried to put toggle on device with invalid id!`,
+                message: `Tried to put mode on device with invalid id!`,
             };
         }
         const promises = (managedDevices as Manager[]).map(async (managedDevice: Manager) => {
@@ -415,7 +415,7 @@ export default class LightController {
             };
         }
         if (managedDevice instanceof TuyaManager) {
-            const sceneparts = await managedDevice.getCurrentScene();
+            const sceneparts = await managedDevice.getSceneParts();
             console.debug('current scene: ');
             console.dir(sceneparts);
             return {
@@ -427,6 +427,45 @@ export default class LightController {
             responseCode: 405,
             message: `deviceId ${deviceId} does not support scenes.`
         }
+    }
+
+    async putScene(devices: string[], sceneParts: SceneParts): Promise<Response<CompletedStatus> | DeviceDoesNotSupportOperationResponse | DeviceNotFoundResponse> {
+        // const managedDevice = this.deviceIdToDeviceManager.get(deviceId);
+        const managedDevices = devices.map((deviceId: string) => this.deviceIdToDeviceManager.get(deviceId));
+        if (!managedDevices.every((managedDevice: Manager | undefined) => managedDevice !== undefined)) {
+            return {
+                responseCode: 400,
+                message: `Tried to put scene on device with invalid id!`,
+            };
+        }
+        const promises = (managedDevices as Manager[]).map(async (managedDevice: Manager) => {
+            if (managedDevice instanceof TuyaManager) {
+                await managedDevice.setSceneFromParts(sceneParts);
+                return {
+                    responseCode: 200,
+                    data: {completed: true}
+                } as Response<CompletedStatus>;
+            }
+            return {
+                responseCode: 405,
+                message: `Device does not support scenes.`
+            } as DeviceDoesNotSupportOperationResponse;
+        });
+        return Promise.all(promises)
+          .then((responses: (DeviceDoesNotSupportOperationResponse | Response<CompletedStatus>)[]) => {
+              // 405 error means device does not support operation
+              if (responses.some((response) => response.responseCode === 405)) {
+                  return {
+                      responseCode: 405,
+                      message: 'Device does not support scenes.'
+                  }
+              }
+              const allRequestsCompleted = (responses as Response<CompletedStatus>[]).every((response: Response<CompletedStatus>) => response.data.completed);
+              return {
+                  responseCode: 200,
+                  data: {completed: allRequestsCompleted}
+              } as Response<CompletedStatus>;
+          });
     }
 
     async getWarmth(deviceId: string): Promise<Response<WarmthState> | DeviceNotFoundResponse> {
@@ -509,35 +548,4 @@ export default class LightController {
               } as Response<CompletedStatus>;
           });
     }
-
-//     async putScene(devices: string[], scene: SceneParts): Promise<Response<CompletedStatus> | DeviceDoesNotSupportOperationResponse | DeviceNotFoundResponse> {
-//         // const managedDevice = this.deviceIdToDeviceManager.get(deviceId);
-//         const managedDevices = devices.map((deviceId: string) => this.deviceIdToDeviceManager.get(deviceId));
-//         if (!managedDevices.every((managedDevice: Manager | undefined) => managedDevice !== undefined)) {
-//             return {
-//                 responseCode: 400,
-//                 message: `Tried to put toggle on device with invalid id!`,
-//             };
-//         }
-//         const promises = (managedDevices as Manager[]).map(async (managedDevice: Manager) => {
-//             if (managedDevice instanceof TuyaManager) {
-//                 await managedDevice.setCurrentScene(scene);
-//                 return {
-//                     responseCode: 200,
-//                     data: {completed: true}
-//                 };
-//             }
-//             return {
-//                 responseCode: 405,
-//                 message: `Device does not support scenes.`
-//             }
-//         });
-//         return Promise.all(promises)
-//           .then((responses: Response<CompletedStatus>[]) => {
-//               return {
-//                   responseCode: 200,
-//                   data: {completed: responses.every((response: Response<CompletedStatus>) => response.data.completed)}
-//               } as Response<CompletedStatus>;
-//           });
-//     }
 }

@@ -223,7 +223,7 @@ export default class TuyaManager extends Manager {
       return v;
     } else if (mode === Mode.SCENE) {
       // Assumes all colors in scene have same brightness
-      const sceneparts = await this.getCurrentScene();
+      const sceneparts = await this.getSceneParts();
       return sceneparts.parts[0].v / 10;
     }  else {
       console.log('unsupported mode. Supported modes are WHITE, COLOR, and SCENE');
@@ -240,11 +240,12 @@ export default class TuyaManager extends Manager {
       return this.setBetterHSV(h, s, brightness)
     } else if (mode === Mode.SCENE) {
       // Assumes all colors in scene have same brightness
-      const sceneparts = await this.getCurrentScene();
+      // @TODO: remove this logic. Scenes should be their own things.
+      const sceneparts = await this.getSceneParts();
       for (const part of sceneparts.parts) {
         part.v = brightness;
       }
-      return this.setCurrentScene(sceneparts);
+      return this.setSceneFromParts(sceneparts);
     } else {
       console.log('unsupported mode. Supported modes are WHITE, COLOR, and SCENE');
       return {}
@@ -271,12 +272,12 @@ export default class TuyaManager extends Manager {
     return this.setBetterHSV(hue, sat, bri);
   }
 
-  async getCurrentScene(): Promise<SceneParts> {
+  async getSceneParts(): Promise<SceneParts> {
     const compressedScene = await this.getScene();
     return parseFullSceneIntoParts(compressedScene);
   }
 
-  async setCurrentScene(sceneparts: SceneParts): Promise<Object> {
+  async setSceneFromParts(sceneparts: SceneParts): Promise<Object> {
     const compressedScene = compressSceneParts(sceneparts);
     return this.setScene(compressedScene);
   }

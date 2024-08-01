@@ -25,8 +25,8 @@ function parseScene(scene: string): Scene {
     const unitChangeTime = parseInt(scene.substring(2, 4), 16);
     const unitChangeMode = parseInt(scene.substring(4, 6), 16);
     const h = parseInt(scene.substring(6, 10), 16);
-    const s = parseInt(scene.substring(10, 14), 16);
-    const v = parseInt(scene.substring(14, 18), 16)
+    const s = Math.floor(parseInt(scene.substring(10, 14), 16) / 10);
+    const v = Math.floor(parseInt(scene.substring(14, 18), 16) / 10);
     const whiteLightBrightness = parseInt(scene.substring(18, 22), 16);
     const colorTemperature = parseInt(scene.substring(22, 26), 16);
     return {

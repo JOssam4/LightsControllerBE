@@ -1,6 +1,7 @@
-import axios from "axios";
-import Manager from "./Manager";
+import axios from 'axios';
+import Manager from './Manager';
 import {Mode} from './Types';
+import { SceneParts } from './Scenes';
 
 enum AlertState {
     SELECT = 'select',
@@ -144,6 +145,13 @@ export default class HueManager extends Manager {
                     return Mode.WHITE
                 }
             });
+    }
+
+    getSceneParts(): Promise<SceneParts> {
+        throw new Error("Method not implemented.");
+    }
+    setSceneFromParts(sceneparts: SceneParts): Promise<Object> {
+        throw new Error("Method not implemented.");
     }
 
     async getXY(): Promise<[number, number]> {

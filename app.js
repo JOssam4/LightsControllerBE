@@ -253,6 +253,23 @@ app.get('/scene', async (req, res) => {
     }
 });
 
+app.put('/scene', async (req, res) => {
+    if (!controller) {
+        const retryAfter = '30';
+        res.set('Retry-After', retryAfter);
+        res.status(503).send(`Light controller not up yet. Please wait ${retryAfter} seconds`);
+        return;
+    }
+    const devices = req.query.device.split(',');
+    const result = await controller.putScene(devices, req.body.sceneparts);
+    if (result.responseCode === 200) {
+        res.json(result.data);
+    } else {
+        res.status(result.responseCode).send(result.message);
+    }
+
+})
+
 app.put('/timer', async (req, res) => {
     // Set a timer for a future date. Time is expressed as a date and time in the future
     if (!controller) {
