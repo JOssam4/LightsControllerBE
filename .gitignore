@@ -3,3 +3,6 @@ build
 .idea
 bin/tuya_keys.json
 bin/hue_keys.json
+/bin/hue_root_ca.pem
+*.js
+*.js.map

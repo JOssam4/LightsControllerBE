@@ -1,4 +1,4 @@
-import axios from 'axios';
+import hueClient from './HueClient';
 import Manager from './Manager';
 import {Mode} from './Types';
 import { SceneParts } from './Scenes';
@@ -75,13 +75,13 @@ export default class HueManager extends Manager {
     private async getDeviceStatus(): Promise<HueLightDeviceState> {
         // const response = await fetch(`${this.baseUrl}/api/${this.username}/lights/${this.deviceId}`);
         // return await response.json();
-        return (await axios.get(`${this.baseUrl}/api/${this.username}/lights/${this.deviceId}`)).data.state;
+        return (await hueClient.get(`${this.baseUrl}/api/${this.username}/lights/${this.deviceId}`)).data.state;
     }
 
     private async setDeviceStatus(payload: HueLightDeviceStatePayload): Promise<SetStatusResponse[]> {
         // const resp = await fetch(`${this.baseUrl}/api/${this.username}/lights/${this.deviceId}/state`, { method: 'PUT', body: JSON.stringify(payload) });
         // return await resp.json();
-        return (await axios.put(`${this.baseUrl}/api/${this.username}/lights/${this.deviceId}/state`, payload)).data;
+        return (await hueClient.put(`${this.baseUrl}/api/${this.username}/lights/${this.deviceId}/state`, payload)).data;
     } 
     
     async getToggleStatus(): Promise<boolean> {

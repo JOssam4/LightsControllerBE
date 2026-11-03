@@ -1,4 +1,4 @@
-import axios from 'axios';
+import hueClient from './HueClient';
 import {HueDeviceResponse} from './Types';
 import Scanner from './Scanner';
 
@@ -12,7 +12,7 @@ export default class HueScanner extends Scanner {
     this.username = username;
   }
   public async scan(): Promise<HueDeviceResponse[]> {
-    const deviceData = (await axios.get(`${this.baseUrl}/api/${this.username}/lights`)).data
+    const deviceData = (await hueClient.get(`${this.baseUrl}/api/${this.username}/lights`)).data
     const deviceIds: string[] = Object.keys(deviceData);
     const devices: HueDeviceResponse[] = [];
     deviceIds.forEach((id: string) => {
